@@ -1,0 +1,83 @@
+import type { SchedulePlanItem, DocumentAttachment } from '../types/projectManagement'
+
+const att = (seed: string): DocumentAttachment[] => [
+  {
+    key: `${seed}-1`,
+    name: `${seed}-进度计划.xlsx`,
+    url: `#${seed}-1`,
+    size: 345000,
+    uploadedBy: '项目经理',
+    uploadDate: '2025-03-01 09:00:00',
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  },
+]
+
+const initialData: SchedulePlanItem[] = [
+  {
+    key: 'sp-1',
+    code: 'SP-2025-001',
+    projectCode: 'XB2005-0037',
+    title: '市场主体登记系统上线阶段计划',
+    phase: '开发',
+    planStart: '2025-04-01',
+    planEnd: '2025-06-30',
+    responsible: '韦江腾',
+    milestones: ['需求冻结', '核心模块开发完成', '集成测试完成', '用户验收'],
+    status: '已审批',
+    attachments: att('sp1'),
+  },
+  {
+    key: 'sp-2',
+    code: 'SP-2025-002',
+    projectCode: 'XB2005-0037',
+    title: '信用监管平台扩容阶段计划',
+    phase: '设计',
+    planStart: '2025-05-01',
+    planEnd: '2025-08-31',
+    responsible: '滕海燕',
+    milestones: ['架构评审', '数据库分库分表设计', '缓存方案评审'],
+    status: '待审批',
+    attachments: att('sp2'),
+  },
+  {
+    key: 'sp-3',
+    code: 'SP-2025-003',
+    projectCode: 'XB2005-0062',
+    title: '综合指挥中心大屏与视频会议升级计划',
+    phase: '部署',
+    planStart: '2025-02-15',
+    planEnd: '2025-05-30',
+    responsible: '韦江腾',
+    milestones: ['设备到货', '联调测试', '模拟演练', '正式上线'],
+    status: '已审批',
+    attachments: att('sp3'),
+  },
+  {
+    key: 'sp-4',
+    code: 'SP-2025-004',
+    projectCode: 'XB2005-0089',
+    title: '智慧海洋监管平台启动计划',
+    phase: '需求分析',
+    planStart: '2025-06-10',
+    planEnd: '2025-09-30',
+    responsible: '黄志强',
+    milestones: ['需求调研', '原型确认', '需求评审'],
+    status: '已驳回',
+    attachments: att('sp4'),
+  },
+  {
+    key: 'sp-5',
+    code: 'SP-2025-005',
+    projectCode: 'XB2005-0123',
+    title: '民政系统升级改造开发计划',
+    phase: '开发',
+    planStart: '2025-04-20',
+    planEnd: '2025-10-31',
+    responsible: '滕海燕',
+    milestones: ['功能冻结', '数据迁移方案评审', '灰度发布'],
+    status: '待审批',
+    attachments: att('sp5'),
+  },
+]
+
+export default initialData

@@ -1,0 +1,78 @@
+import type { CostAnalysisItem, DocumentAttachment } from '../types/projectManagement'
+
+const att = (seed: string): DocumentAttachment[] => [
+  {
+    key: `${seed}-1`,
+    name: `${seed}-成本分析报告.pdf`,
+    url: `#${seed}-1`,
+    size: 789000,
+    uploadedBy: '王华',
+    uploadDate: '2025-06-10 09:00:00',
+    type: 'application/pdf',
+  },
+]
+
+const initialData: CostAnalysisItem[] = [
+  {
+    key: 'ca-1',
+    code: 'CA-2025-001',
+    projectCode: 'XB2005-0037',
+    title: '市场监管局信息系统2025年上半年成本分析',
+    analysisDate: '2025-06-15',
+    author: '韦江腾',
+    budgetTotal: 28600000,
+    actualTotal: 18500000,
+    varianceSummary: '开发费节约、设备费超支，综合节约约350万元。',
+    analysis: '整体成本可控，开发费用节约主要由于阶段进度滞后；设备超支因高性能服务器采购新增，已纳入变更流程。',
+    suggestions: '加强变更管理与采购预算管控；结合进度计划对下半年预算进行滚动调整。',
+    status: '已发布',
+    attachments: att('ca1'),
+  },
+  {
+    key: 'ca-2',
+    code: 'CA-2025-002',
+    projectCode: 'XB2005-0062',
+    title: '海洋综合执法项目2025年上半年成本分析',
+    analysisDate: '2025-06-18',
+    author: '韦江腾',
+    budgetTotal: 16500000,
+    actualTotal: 9200000,
+    varianceSummary: '总体节约约730万元，主要来自设备提前到货与采购谈判。',
+    analysis: '设备采购与系统集成费用控制良好，远海卫星通信模块为潜在风险点。',
+    suggestions: '针对远海通信模块追加专项预算评审；考虑与运营商签订长期协议锁定价格。',
+    status: '已发布',
+    attachments: att('ca2'),
+  },
+  {
+    key: 'ca-3',
+    code: 'CA-2025-003',
+    projectCode: 'XB2005-0156',
+    title: '数字政府基础设施项目2025年上半年成本分析',
+    analysisDate: '2025-06-20',
+    author: '张建华',
+    budgetTotal: 58000000,
+    actualTotal: 28500000,
+    varianceSummary: '材料费与人工费均存在一定超支，总体控制尚可。',
+    analysis: '机房扩容审批流程慢导致工期延后，人工费随之上升；网络设备采购价格高于预期。',
+    suggestions: '优化机房审批流程；对网络设备采购进行集中招标，降低后续采购成本。',
+    status: '待审批',
+    attachments: att('ca3'),
+  },
+  {
+    key: 'ca-4',
+    code: 'CA-2025-004',
+    projectCode: 'XB2005-0123',
+    title: '民政系统升级改造项目阶段性成本分析',
+    analysisDate: '2025-06-22',
+    author: '滕海燕',
+    budgetTotal: 9800000,
+    actualTotal: 3100000,
+    varianceSummary: '整体按计划推进，无重大偏差。',
+    analysis: '开发与人力费用正常；历史数据迁移涉及的补充工作潜在成本上升。',
+    suggestions: '对迁移补充方案进行预算评审；与用户确认数据范围以控制额外成本。',
+    status: '草稿',
+    attachments: att('ca4'),
+  },
+]
+
+export default initialData

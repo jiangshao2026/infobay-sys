@@ -1,0 +1,51 @@
+
+> jianli-service-management@0.1.0 build
+> tsc && vite build -
+
+src/pages/contractManagement/payment.tsx(278,11): error TS6133: 'chain' is declared but its value is never read.
+src/pages/contractManagement/payment.tsx(359,28): error TS1016: A required parameter cannot follow an optional parameter.
+src/pages/contractManagement/payment.tsx(628,39): error TS2561: Object literal may only specify known properties, but 'showSizeChangers' does not exist in type 'TablePaginationConfig'. Did you mean to write 'showSizeChanger'?
+src/pages/costControl/trackPage.tsx(1,53): error TS6133: 'DatePicker' is declared but its value is never read.
+src/pages/costControl/trackPage.tsx(4,1): error TS6133: 'dayjs' is declared but its value is never read.
+src/pages/dashboard/index.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/pages/dashboard/index.tsx(28,1): error TS6133: 'ProjectItem' is declared but its value is never read.
+src/pages/dashboard/index.tsx(131,42): error TS2367: This comparison appears to be unintentional because the types '"已驳回" | "已关闭" | "待提交" | "已批准" | "已实施"' and '"审批中"' have no overlap.
+src/pages/informationManagement/plan.tsx(8,65): error TS6196: 'ContractAttachment' is declared but never used.
+src/pages/knowledgeBase/docPage.tsx(476,19): error TS2353: Object literal may only specify known properties, and 'records' does not exist in type 'DocumentContext'.
+src/pages/knowledgeBase/docPage.tsx(482,19): error TS2353: Object literal may only specify known properties, and 'records' does not exist in type 'DocumentContext'.
+src/pages/organizationCoordination/meetingPage.tsx(7,28): error TS6196: 'OCMeetingType' is declared but never used.
+src/pages/organizationCoordination/meetingPage.tsx(7,43): error TS6196: 'OCMeetingStatus' is declared but never used.
+src/pages/organizationCoordination/teamPage.tsx(6,10): error TS6133: 'DetailModal' is declared but its value is never read.
+src/pages/organizationCoordination/teamPage.tsx(6,23): error TS6133: 'descItem' is declared but its value is never read.
+src/pages/organizationCoordination/teamPage.tsx(6,33): error TS6133: 'descText' is declared but its value is never read.
+src/pages/organizationCoordination/teamPage.tsx(6,43): error TS6133: 'CompactTableCssOnly' is declared but its value is never read.
+src/pages/projectManagement/allocation.tsx(39,9): error TS2322: Type 'string | boolean' is not assignable to type 'boolean'.
+  Type 'string' is not assignable to type 'boolean'.
+src/pages/projectManagement/overview.tsx(1,66): error TS6133: 'Divider' is declared but its value is never read.
+src/pages/projectManagement/overview.tsx(3,3): error TS6133: 'DashboardOutlined' is declared but its value is never read.
+src/pages/projectManagement/overview.tsx(10,3): error TS6133: 'EditOutlined' is declared but its value is never read.
+src/pages/projectManagement/overview.tsx(11,3): error TS6133: 'EyeOutlined' is declared but its value is never read.
+src/pages/projectManagement/overview.tsx(17,30): error TS6133: 'getProjectNameByCode' is declared but its value is never read.
+src/pages/projectManagement/overview.tsx(102,9): error TS6133: 'renderMiniList' is declared but its value is never read.
+src/pages/projectManagement/startupPage.tsx(357,11): error TS6133: 'chain' is declared but its value is never read.
+src/pages/projectManagement/supervisionContract.tsx(8,31): error TS6133: 'getContractByCode' is declared but its value is never read.
+src/pages/projectManagement/supervisionContract.tsx(8,50): error TS6133: 'getContractsByProjectCode' is declared but its value is never read.
+src/pages/projectManagement/supervisionContract.tsx(9,46): error TS6133: 'getProjectByCode' is declared but its value is never read.
+src/pages/projectManagement/supervisionContract.tsx(10,8): error TS6133: 'paymentsData' is declared but its value is never read.
+src/pages/projectManagement/supervisionContract.tsx(10,57): error TS6133: 'getPaymentsByContractCode' is declared but its value is never read.
+src/pages/projectManagement/supervisionContract.tsx(11,51): error TS6196: 'ContractAttachment' is declared but never used.
+src/pages/projectManagement/supervisionContract.tsx(150,21): error TS2339: Property 'uploadedBy' does not exist on type 'ContractAttachment'.
+src/pages/projectManagement/supervisionContract.tsx(151,21): error TS2339: Property 'uploadDate' does not exist on type 'ContractAttachment'.
+src/pages/projectManagement/supervisionContract.tsx(152,15): error TS2339: Property 'type' does not exist on type 'ContractAttachment'.
+src/pages/projectManagement/supervisionContract.tsx(153,15): error TS2339: Property 'size' does not exist on type 'ContractAttachment'.
+src/pages/supervisorManagement/certificateQueryPage.tsx(1,31): error TS6133: 'Space' is declared but its value is never read.
+src/pages/supervisorManagement/certificateQueryPage.tsx(7,10): error TS6133: 'DetailModal' is declared but its value is never read.
+src/pages/supervisorManagement/certificateQueryPage.tsx(7,23): error TS6133: 'descItem' is declared but its value is never read.
+src/pages/supervisorManagement/certificateQueryPage.tsx(7,33): error TS6133: 'descText' is declared but its value is never read.
+src/pages/supervisorManagement/supervisorPage.tsx(2,83): error TS6133: 'UploadOutlined' is declared but its value is never read.
+src/pages/supervisorManagement/supervisorPage.tsx(383,155): error TS2322: Type '{ items: DocumentAttachment[]; }' is not assignable to type 'IntrinsicAttributes & DocumentListProps'.
+  Property 'items' does not exist on type 'IntrinsicAttributes & DocumentListProps'.
+src/pages/supervisorManagement/supervisorPage.tsx(579,66): error TS2322: Type '{ items: DocumentAttachment[]; }' is not assignable to type 'IntrinsicAttributes & DocumentListProps'.
+  Property 'items' does not exist on type 'IntrinsicAttributes & DocumentListProps'.
+src/types/projectManagement.ts(450,10): error TS2552: Cannot find name 'MeetingType'. Did you mean 'OCMeetingType'?
+src/types/projectManagement.ts(451,12): error TS2552: Cannot find name 'MeetingStatus'. Did you mean 'OCMeetingStatus'?

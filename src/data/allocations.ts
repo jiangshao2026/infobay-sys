@@ -1,0 +1,111 @@
+// ============================================================
+// 任务分配数据 - 统一数据源
+// 说明：projectCode 为外键，对应 projects.ts 的 code
+// ============================================================
+import type { AllocationItem } from '../types/projectManagement'
+
+const initialAllocationData: AllocationItem[] = [
+  {
+    key: '1',
+    code: 'TA-2025-0012',
+    projectCode: 'XB2005-0037',
+    taskName: '需求分析与系统设计阶段监理',
+    assignee: '韦江腾',
+    startDate: '2025-03-15',
+    endDate: '2025-06-30',
+    status: '已完成',
+    priority: '高',
+    description: '负责市场监管局信息化项目需求分析与系统设计阶段的全过程监理工作',
+  },
+  {
+    key: '2',
+    code: 'TA-2025-0025',
+    projectCode: 'XB2005-0037',
+    taskName: '软件开发与代码审查监理',
+    assignee: '韦江腾',
+    startDate: '2025-05-01',
+    endDate: '2025-10-31',
+    status: '进行中',
+    priority: '高',
+    description: '负责市场监管局信息化项目软件开发与代码审查阶段监理工作',
+  },
+  {
+    key: '3',
+    code: 'TA-2025-0038',
+    projectCode: 'XB2005-0062',
+    taskName: '指挥大厅改造监理',
+    assignee: '黄志强',
+    startDate: '2025-02-10',
+    endDate: '2025-08-31',
+    status: '进行中',
+    priority: '高',
+    description: '负责综合指挥中心大厅改造与显示系统集成监理工作',
+  },
+  {
+    key: '4',
+    code: 'TA-2025-0056',
+    projectCode: 'XB2005-0062',
+    taskName: '船艇定位与通信系统监理',
+    assignee: '滕海燕',
+    startDate: '2025-06-01',
+    endDate: '2025-12-31',
+    status: '进行中',
+    priority: '中',
+    description: '负责海洋执法船艇卫星定位与通信系统建设监理',
+  },
+  {
+    key: '5',
+    code: 'TA-2025-0087',
+    projectCode: 'XB2005-0156',
+    taskName: '政务云平台建设监理',
+    assignee: '张建华',
+    startDate: '2025-01-10',
+    endDate: '2025-09-30',
+    status: '即将完工',
+    priority: '高',
+    description: '负责省级政务云资源扩容与云平台建设监理工作',
+  },
+  {
+    key: '6',
+    code: 'TA-2024-0102',
+    projectCode: 'XB2005-0189',
+    taskName: '三维建模与仿真监理',
+    assignee: '吴国栋',
+    startDate: '2024-09-01',
+    endDate: '2025-03-31',
+    status: '已完成',
+    priority: '高',
+    description: '负责潮州供水枢纽数字孪生平台三维建模与仿真模型建设监理',
+  },
+  {
+    key: '7',
+    code: 'TA-2025-0073',
+    projectCode: 'XB2005-0267',
+    taskName: '统计数据平台建设监理',
+    assignee: '郑慧敏',
+    startDate: '2025-06-01',
+    endDate: '2025-12-31',
+    status: '进行中',
+    priority: '中',
+    description: '负责"赣数智"一体化统计数据平台建设监理工作',
+  },
+  {
+    key: '8',
+    code: 'TA-2025-0091',
+    projectCode: 'XB2005-0345',
+    taskName: '区域卫生信息平台建设监理',
+    assignee: '冯志华',
+    startDate: '2025-07-01',
+    endDate: '2026-03-31',
+    status: '待启动',
+    priority: '高',
+    description: '负责顺德区医疗健康信息系统一体化建设监理工作',
+  },
+]
+
+// 根据项目编号查询关联任务
+export const getAllocationsByProjectCode = (projectCode: string): AllocationItem[] => {
+  return initialAllocationData.filter(a => a.projectCode === projectCode)
+}
+
+export default initialAllocationData

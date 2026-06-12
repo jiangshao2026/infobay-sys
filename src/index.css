@@ -1,0 +1,77 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+}
+
+/* === 压缩表格行高：覆盖 antd 5.x CSS 变量 + 强选择器 === */
+/* 方式1：通过 CSS 变量统一控制（影响所有 Table 实例） */
+:root {
+  --ant-table-cell-padding-block: 4px !important;
+  --ant-table-cell-padding-inline: 8px !important;
+  --ant-table-cell-font-size: 13px !important;
+}
+
+/* 方式2：高特异性选择器覆盖组件内联样式（兜底方案） */
+#root .ant-table-thead > tr > th {
+  padding: 6px 10px !important;
+  font-size: 13px !important;
+  height: auto !important;
+}
+
+#root .ant-table-tbody > tr > td {
+  padding: 6px 10px !important;
+  font-size: 13px !important;
+  height: auto !important;
+}
+
+/* 针对 Tabs 容器内的 Table（TabPane 可能有额外间距） */
+#root .ant-tabs-tabpane .ant-table-thead > tr > th,
+#root .ant-tabs-tabpane .ant-table-tbody > tr > td {
+  padding: 6px 10px !important;
+}
+
+/* Table 容器减少 padding */
+#root .ant-card-body {
+  padding: 12px !important;
+}
+
+/* 表格操作列按钮组紧凑布局 */
+#root .ant-table-cell .ant-space {
+  gap: 4px !important;
+}
+
+/* 分页组件更紧凑 */
+#root .ant-pagination {
+  margin-top: 12px !important;
+}
+
+/* 可展开行的内部 padding */
+#root .ant-table-expanded-row > td {
+  padding: 8px 16px !important;
+}
+
+/* Tag 组件在表格中更紧凑 */
+#root .ant-table-cell .ant-tag {
+  margin: 0 4px 0 0;
+  padding: 0 6px;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* === 左侧菜单项更紧凑 === */
+.ant-menu-item,
+.ant-menu-submenu-title {
+  height: 36px !important;
+  line-height: 36px !important;
+  margin: 2px 8px !important;
+}
