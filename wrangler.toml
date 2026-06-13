@@ -1,0 +1,14 @@
+# Cloudflare Pages 配置 - 绕过 wrangler 的 Vite 6 框架检测
+name = "infobay-sys"
+compatibility_date = "2025-01-01"
+
+[build]
+command = "npm run build"
+output_dir = "dist"
+
+# 声明这是纯静态页面，避免 wrangler 尝试框架自动配置
+# 路由回退到 index.html（SPA）
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200
