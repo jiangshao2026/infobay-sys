@@ -11,6 +11,20 @@ export default defineConfig({
     },
   },
   build: {
+    target: 'es2018',
+    cssCodeSplit: true,
+    minify: 'esbuild',
+    sourcemap: false,
     chunkSizeWarningLimit: 2000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'antd-vendor': ['antd', '@ant-design/icons'],
+          'router-vendor': ['react-router-dom'],
+          'dayjs-vendor': ['dayjs'],
+        },
+      },
+    },
   },
 })
