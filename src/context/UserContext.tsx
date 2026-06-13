@@ -8,12 +8,13 @@ export interface DemoUser {
   role: string
 }
 
-// 4 个演示用户（所有用户均能看到所有界面、进行所有操作）
+// 演示用户（不同角色在监理合同审批等场景有不同权限）
 export const DEMO_USERS: DemoUser[] = [
   { key: 'u1', name: '王小平', position: '常务副总经理', avatarText: '王', role: '副总经理' },
   { key: 'u2', name: '王华', position: '部门经理', avatarText: '王', role: '部门经理' },
   { key: 'u3', name: '韦江腾', position: '总监理工程师 / 知识管理员', avatarText: '韦', role: '总监理工程师' },
   { key: 'u4', name: '滕海燕', position: '监理工程师', avatarText: '滕', role: '监理工程师' },
+  { key: 'u5', name: '孙永秀', position: '销售', avatarText: '孙', role: '销售' },
 ]
 
 const DEFAULT_PASSWORD = 'xinbai'

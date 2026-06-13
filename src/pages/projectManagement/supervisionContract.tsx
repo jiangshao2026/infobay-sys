@@ -1,6 +1,6 @@
-import { Card, Table, Button, Tag, Input, Select, DatePicker, Modal, Form, message, Space, Progress } from 'antd'
-import { PlusOutlined, SearchOutlined, EditOutlined, WalletOutlined, EyeOutlined, CheckCircleOutlined, DownloadOutlined, PrinterOutlined } from '@ant-design/icons'
-import { useState } from 'react'
+import { Card, Table, Button, Tag, Input, Select, DatePicker, Modal, Form, message, Space, Progress, Spin } from 'antd'
+import { PlusOutlined, SearchOutlined, EditOutlined, WalletOutlined, EyeOutlined, CheckCircleOutlined, DownloadOutlined, PrinterOutlined, RobotOutlined } from '@ant-design/icons'
+import React, { useState, useMemo } from 'react'
 import dayjs from 'dayjs'
 import { DocumentUploader } from '../../components/DocumentUploader'
 import type { DocumentAttachment } from '../../types/projectManagement'
@@ -14,12 +14,46 @@ import { validateContractAmount, validateContractDates, parseAmountFromForm, amo
 import { DetailModal, descItem, descText, descTag, descProgress, descAttachments, statusColor } from '../../components/DetailModal'
 import { CompactTableCssOnly } from '../../components/CompactTable'
 import { ReviewModal, ReviewTimeline, getApprovalRecords, APPROVAL_CHAINS, type ApprovalRecord, exportDocument, printDocument } from '../../components/ReviewFlow'
+import { useUser } from '../../context/UserContext'
+import { useAppData } from '../../context/AppDataContext'
 
 const { RangePicker } = DatePicker
 const { Option } = Select
 
 function SupervisionContract() {
-  const [contractList, setContractList] = useState<ContractItem[]>(initialContractData)
+  const { currentUser } = useUser()
+  // 从全局 Context 获取数据源
+  const { contractList: globalContractList, setContractList, updateContractStatus, contractApprovalMap, addContractApproval } = useAppData()
+  // 搜索条件（null 表示展示全部）
+  const [searchParams, setSearchParams] = useState<ContractSearchParams | null>(null)
+  // 展示列表：基于全局数据 + 搜索条件实时计算，确保状态变更后立即反映
+  const displayList = useMemo(() => {
+    if (!searchParams) return globalContractList
+    return globalContractList.filter(item => {
+      if (searchParams.keyword) {
+        const kw = searchParams.keyword.toLowerCase()
+        if (!item.code.toLowerCase().includes(kw) && !item.name.toLowerCase().includes(kw)) {
+          return false
+        }
+      }
+      if (searchParams.projectCode && item.projectCode !== searchParams.projectCode) {
+        return false
+      }
+      if (searchParams.status && item.status !== searchParams.status) {
+        return false
+      }
+      if (searchParams.signDateRange && searchParams.signDateRange[0] && searchParams.signDateRange[1]) {
+        const itemDate = dayjs(item.signDate)
+        const start = searchParams.signDateRange[0]
+        const end = searchParams.signDateRange[1]
+        if (itemDate.isBefore(start, 'day') || itemDate.isAfter(end, 'day')) {
+          return false
+        }
+      }
+      return true
+    })
+  }, [globalContractList, searchParams])
+
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
   const [currentContract, setCurrentContract] = useState<ContractItem | null>(null)
   const [isModalVisible, setIsModalVisible] = useState(false)
@@ -31,38 +65,23 @@ function SupervisionContract() {
   const [editForm] = Form.useForm()
   const [editFileList, setEditFileList] = useState<DocumentAttachment[]>([])
   const [isReviewModalVisible, setIsReviewModalVisible] = useState(false)
-  const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
+
+  // 销售发起审批的弹窗状态
+  const [isSalesInitiateVisible, setIsSalesInitiateVisible] = useState(false)
+  const [salesInitiateForm] = Form.useForm()
+  const [aiReviewing, setAiReviewing] = useState(false)
+  const [aiReviewResult, setAiReviewResult] = useState<string[] | null>(null)
+  const [selectedSupervisor, setSelectedSupervisor] = useState<string>('')
 
   const handleSearch = (values: ContractSearchParams) => {
-    const filtered = initialContractData.filter(item => {
-      if (values.keyword) {
-        const kw = values.keyword.toLowerCase()
-        if (!item.code.toLowerCase().includes(kw) && !item.name.toLowerCase().includes(kw)) {
-          return false
-        }
-      }
-      if (values.projectCode && item.projectCode !== values.projectCode) {
-        return false
-      }
-      if (values.status && item.status !== values.status) {
-        return false
-      }
-      if (values.signDateRange && values.signDateRange[0] && values.signDateRange[1]) {
-        const itemDate = dayjs(item.signDate)
-        const start = values.signDateRange[0]
-        const end = values.signDateRange[1]
-        if (itemDate.isBefore(start, 'day') || itemDate.isAfter(end, 'day')) {
-          return false
-        }
-      }
-      return true
-    })
-    setContractList(filtered)
+    // 保存搜索条件，displayList 会通过 useMemo 自动重新计算
+    setSearchParams(values)
   }
 
   const handleReset = () => {
     searchForm.resetFields()
-    setContractList(initialContractData)
+    // 清除搜索条件，展示全部数据
+    setSearchParams(null)
   }
 
   const handleView = (record: ContractItem) => {
@@ -117,7 +136,7 @@ function SupervisionContract() {
         progress: 0,
         attachments: fileList.map(f => ({ name: f.name, url: f.url || '#' })),
       }
-      setContractList(prev => [newContract, ...prev])
+      setContractList([newContract, ...globalContractList])
       setIsModalVisible(false)
       form.resetFields()
       setFileList([])
@@ -194,7 +213,7 @@ function SupervisionContract() {
           progress: currentEditContract.progress,
           attachments: editFileList.map((f: any) => ({ name: f.name, url: f.url || '#' })),
         }
-        setContractList(prev => prev.map(item =>
+        setContractList(globalContractList.map(item =>
           item.key === currentEditContract.key ? updatedContract : item
         ))
         setIsEditModalVisible(false)
@@ -221,9 +240,7 @@ function SupervisionContract() {
       cancelText: '取消',
       okButtonProps: { danger: true },
       onOk: () => {
-        setContractList(prev => prev.map(item =>
-          item.key === record.key ? { ...item, status: '已作废' } : item
-        ))
+        updateContractStatus(record.key, '已作废')
         message.success('合同已作废')
       },
     })
@@ -238,49 +255,137 @@ function SupervisionContract() {
       okText: '确认',
       cancelText: '取消',
       onOk: () => {
-        setContractList(prev => prev.map(item =>
-          item.key === record.key ? {
-            ...item,
-            progress: newProgress,
-            status: newProgress >= 100 ? '已完成' : item.status
-          } : item
-        ))
+        updateContract(record.key, {
+          progress: newProgress,
+          status: newProgress >= 100 ? '已完成' : record.status
+        })
         message.success('收款记录已更新')
       },
     })
   }
 
-  const handleReview = (record: ContractItem) => {
-    setCurrentContract(record)
-    setIsReviewModalVisible(true)
+  // 根据合同状态判断当前审批级别（1=销售发起，2=总监理工程师，3=部门经理，4=副总经理）
+  const getCurrentApprovalLevel = (status: string): number => {
+    switch (status) {
+      case '待审批': return 1
+      case '待总监理工程师审批': return 2
+      case '待部门经理审批': return 3
+      case '待分管副总经理审批': return 4
+      default: return 0
+    }
   }
 
+  // 根据合同状态判断用户是否可以操作
+  const canApprove = (status: string): boolean => {
+    const level = getCurrentApprovalLevel(status)
+    if (level === 0) return false
+    const roles = APPROVAL_CHAINS.CONTRACT.roles || []
+    const expectedRole = roles[level - 1]
+    return currentUser.role === expectedRole
+  }
+
+  // 点击"发起审批"或"审批"按钮
+  const handleReview = (record: ContractItem) => {
+    setCurrentContract(record)
+    const level = getCurrentApprovalLevel(record.status)
+    if (level === 1) {
+      // 销售发起审批：打开专用弹窗（含总监理工程师选择+AI审核）
+      salesInitiateForm.resetFields()
+      setAiReviewResult(null)
+      setSelectedSupervisor('')
+      setIsSalesInitiateVisible(true)
+    } else {
+      // 后续审批级别：打开标准审批弹窗
+      setIsReviewModalVisible(true)
+    }
+  }
+
+  // AI智能审核：15秒后返回模拟审核意见
+  const handleAiReview = () => {
+    salesInitiateForm.validateFields().then(() => {
+      setAiReviewing(true)
+      setAiReviewResult(null)
+      setTimeout(() => {
+        const results = [
+          '项目首付款低于合同总金额30%，注意项目收款风险。建议增加付款保函或阶段性验收条款。',
+          '违约条款甲乙双方不对等，注意项目违约风险。建议增加违约责任对等条款。',
+          '监理服务范围描述过于宽泛，建议明确各阶段具体服务内容及交付物清单。',
+          '合同工期与项目计划存在偏差，建议明确工期计算方式及工期延误处理机制。',
+          '质量验收标准不够明确，建议补充各分项工程的验收标准与检测方法。',
+        ]
+        // 随机选 2-3 条审核意见
+        const shuffled = results.sort(() => Math.random() - 0.5)
+        const count = 2 + Math.floor(Math.random() * 2)
+        setAiReviewResult(shuffled.slice(0, count))
+        setAiReviewing(false)
+      }, 15000) // 15秒模拟AI审核
+    }).catch(() => {
+      // 验证失败（例如未选择总监理工程师或未填意见）
+    })
+  }
+
+  // 销售确认提交审批
+  const handleSalesInitiateSubmit = () => {
+    if (!currentContract) return
+    const key = currentContract.key
+    const values = salesInitiateForm.getFieldsValue()
+    const supervisor = values.supervisor || selectedSupervisor
+    const comment = values.comment || '合同条款已审核，同意提交审批。'
+
+    // 记录销售发起的审批记录（级别1）
+    const newRecord: ApprovalRecord = {
+      key: `${key}-1`,
+      code: `${currentContract.code}-R1`,
+      level: 1,
+      reviewer: currentUser.name,
+      status: '通过',
+      comment: `${comment}【已分配总监理工程师：${supervisor}】`,
+      date: new Date().toLocaleString('zh-CN'),
+    }
+    addContractApproval(key, newRecord)
+
+    // 更新合同状态为"待总监理工程师审批"
+    updateContractStatus(key, '待总监理工程师审批')
+    setIsSalesInitiateVisible(false)
+    setAiReviewResult(null)
+    message.success(`已发起审批，合同已提交至总监理工程师（${supervisor}）`)
+  }
+
+  // 标准审批提交（级别2/3/4）
   const handleReviewSubmit = (payload: { status: '通过' | '驳回'; comment: string; reviewer: string }) => {
     if (!currentContract) return
     const key = currentContract.key
-    const existingRecords = approvalMap[key] || []
-    const completedCount = existingRecords.length
-    const chainLevels = APPROVAL_CHAINS.CONTRACT.levels.length
-    const nextLevel = completedCount + 1
+    const status = currentContract.status
+    const existingRecords = contractApprovalMap[key] || []
+    const currentLevel = getCurrentApprovalLevel(status)
+    const chain = APPROVAL_CHAINS.CONTRACT
+    const chainLevels = chain.levels.length
+    const nextStatusList = chain.nextStatus || []
+
     const newRecord: ApprovalRecord = {
-      key: `${key}-${nextLevel}`,
-      code: `${currentContract.code}-R${nextLevel}`,
-      level: nextLevel,
+      key: `${key}-${currentLevel}`,
+      code: `${currentContract.code}-R${currentLevel}`,
+      level: currentLevel,
       reviewer: payload.reviewer,
       status: payload.status,
       comment: payload.comment,
       date: new Date().toLocaleString('zh-CN'),
     }
-    setApprovalMap(prev => ({ ...prev, [key]: [...existingRecords, newRecord] }))
+    addContractApproval(key, newRecord)
+
     if (payload.status === '通过') {
-      if (nextLevel >= chainLevels) {
-        setContractList(prev => prev.map(item => item.key === key ? { ...item, status: '已审批' as ContractStatus } : item))
+      const nextStatus = nextStatusList[currentLevel - 1]
+      if (currentLevel >= chainLevels || !nextStatus) {
+        // 最后一级通过
+        updateContractStatus(key, '已审批')
         message.success('终审通过，合同审批完成')
       } else {
-        message.success(`第 ${nextLevel} 级审批通过，进入下一级`)
+        // 进入下一级
+        updateContractStatus(key, nextStatus as ContractStatus)
+        message.success(`审批通过，已提交至下一审批节点：${chain.levels[currentLevel] || '下一级'}`)
       }
     } else {
-      setContractList(prev => prev.map(item => item.key === key ? { ...item, status: '已驳回' as ContractStatus } : item))
+      updateContractStatus(key, '已驳回')
       message.success('审批已驳回')
     }
     setIsReviewModalVisible(false)
@@ -390,21 +495,37 @@ function SupervisionContract() {
       key: 'action',
       width: 340,
       fixed: 'right' as const,
-      render: (_: unknown, record: ContractItem) => (
-        <Space size="small" style={{ display: 'flex', flexWrap: 'wrap' }}>
-          <Button type="link" icon={<EyeOutlined />} size="small" onClick={() => handleView(record)}>查看</Button>
-          <Button type="link" icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)}>修改</Button>
-          {record.status === '待审批' && (
-            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>发起审批</Button>
-          )}
-          {record.status !== '已作废' && record.status !== '已完成' && (
-            <Button type="link" danger size="small" onClick={() => handleVoid(record)}>作废</Button>
-          )}
-          {record.status !== '已作废' && record.status !== '已完成' && (
-            <Button type="link" icon={<WalletOutlined />} size="small" onClick={() => handleReceive(record)}>收款</Button>
-          )}
-        </Space>
-      ),
+      render: (_: unknown, record: ContractItem) => {
+        const isInApproval = getCurrentApprovalLevel(record.status) > 0
+        return (
+          <Space size="small" style={{ display: 'flex', flexWrap: 'wrap' }}>
+            <Button type="link" icon={<EyeOutlined />} size="small" onClick={() => handleView(record)}>查看</Button>
+            <Button type="link" icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)}>修改</Button>
+            {/* 销售才能看到"发起审批" */}
+            {record.status === '待审批' && currentUser.role === '销售' && (
+              <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>发起审批</Button>
+            )}
+            {/* 待总监理工程师审批：只有总监理工程师看到"审批" */}
+            {record.status === '待总监理工程师审批' && currentUser.role === '总监理工程师' && (
+              <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>审批</Button>
+            )}
+            {/* 待部门经理审批：只有部门经理看到"审批" */}
+            {record.status === '待部门经理审批' && currentUser.role === '部门经理' && (
+              <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>审批</Button>
+            )}
+            {/* 待分管副总经理审批：只有副总经理看到"审批" */}
+            {record.status === '待分管副总经理审批' && currentUser.role === '副总经理' && (
+              <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>审批</Button>
+            )}
+            {record.status !== '已作废' && record.status !== '已完成' && !isInApproval && (
+              <Button type="link" danger size="small" onClick={() => handleVoid(record)}>作废</Button>
+            )}
+            {record.status !== '已作废' && record.status !== '已完成' && (
+              <Button type="link" icon={<WalletOutlined />} size="small" onClick={() => handleReceive(record)}>收款</Button>
+            )}
+          </Space>
+        )
+      },
     },
   ]
 
@@ -422,7 +543,7 @@ function SupervisionContract() {
     descItem('状态', descTag(currentContract.status, statusColor)),
     descItem('执行进度', descProgress(currentContract.progress)),
     descItem('合同附件', descAttachments(currentContract.attachments)),
-    descItem('审批记录', <ReviewTimeline records={getApprovalRecords(currentContract, approvalMap, 'CONTRACT')} status={currentContract.status} levels={APPROVAL_CHAINS.CONTRACT.levels} />),
+    descItem('审批记录', <ReviewTimeline records={getApprovalRecords(currentContract, contractApprovalMap, 'CONTRACT')} status={currentContract.status} levels={APPROVAL_CHAINS.CONTRACT.levels} />),
   ] : []
 
   return (
@@ -466,7 +587,7 @@ function SupervisionContract() {
         </Form>
         <Table
           columns={columns}
-          dataSource={contractList}
+          dataSource={displayList}
           size="small"
           pagination={{ pageSize: 10, size: 'small' }}
           scroll={{ x: 1800 }}
@@ -685,7 +806,7 @@ function SupervisionContract() {
                   '按本公司审批流程，依次完成销售、总监理工程师、部门经理及分管副总经理四级审批，同意该合同正式签订。',
                 ],
                 attachments: (currentContract.attachments || []).map(a => a.name),
-                approvals: getApprovalRecords(currentContract, approvalMap, 'CONTRACT'),
+                approvals: getApprovalRecords(currentContract, contractApprovalMap, 'CONTRACT'),
                 date: currentContract.signDate,
               })}>导出审批意见书</Button>
               <Button icon={<PrinterOutlined />} onClick={() => printDocument('contractApproval', {
@@ -697,7 +818,7 @@ function SupervisionContract() {
                   '按本公司审批流程，依次完成销售、总监理工程师、部门经理及分管副总经理四级审批，同意该合同正式签订。',
                 ],
                 attachments: (currentContract.attachments || []).map(a => a.name),
-                approvals: getApprovalRecords(currentContract, approvalMap, 'CONTRACT'),
+                approvals: getApprovalRecords(currentContract, contractApprovalMap, 'CONTRACT'),
                 date: currentContract.signDate,
               })}>打印</Button>
             </Space>
@@ -707,12 +828,102 @@ function SupervisionContract() {
 
       <ReviewModal
         open={isReviewModalVisible}
-        title="发起审批"
+        title="合同审批"
         reviewerOptions={APPROVAL_CHAINS.CONTRACT.reviewerOptions}
+        currentUser={currentUser.name}
         onClose={() => { setIsReviewModalVisible(false) }}
         onSubmit={handleReviewSubmit}
         okText="提交审批"
       />
+
+      {/* 销售发起审批弹窗（含总监理工程师选择+AI审核） */}
+      <Modal
+        title={
+          <span>
+            <RobotOutlined style={{ marginRight: 8, color: '#1890ff' }} />
+            发起监理合同审批 - 销售提交
+          </span>
+        }
+        open={isSalesInitiateVisible}
+        width={600}
+        maskClosable={false}
+        onCancel={() => { setIsSalesInitiateVisible(false); setAiReviewResult(null); setAiReviewing(false) }}
+        footer={aiReviewResult ? [
+          <Button key="back" onClick={() => { setIsSalesInitiateVisible(false); setAiReviewResult(null) }}>取消</Button>,
+          <Button key="back2" onClick={() => { setAiReviewResult(null); }}>返回修改</Button>,
+          <Button key="submit" type="primary" onClick={handleSalesInitiateSubmit}>继续提交（已阅风险提示）</Button>,
+        ] : [
+          <Button key="cancel" onClick={() => { setIsSalesInitiateVisible(false); setAiReviewing(false); setAiReviewResult(null) }}>取消</Button>,
+          <Button key="aiCheck" type="primary" icon={<RobotOutlined />} loading={aiReviewing} onClick={handleAiReview}>
+            {aiReviewing ? 'AI智能审核中...' : '提交并AI审核'}
+          </Button>,
+        ]}
+      >
+        <Form form={salesInitiateForm} layout="vertical" style={{ marginTop: 16 }}>
+          {currentContract && (
+            <div style={{ marginBottom: 16, padding: 12, background: '#fafafa', borderRadius: 6, border: '1px solid #f0f0f0' }}>
+              <div><strong>合同编号：</strong>{currentContract.code}</div>
+              <div><strong>合同名称：</strong>{currentContract.name}</div>
+              <div><strong>合同金额：</strong>{formatCurrency(currentContract.amount)}</div>
+              <div><strong>当前状态：</strong>{currentContract.status}</div>
+            </div>
+          )}
+
+          <Form.Item
+            label="总监理工程师（必选）"
+            name="supervisor"
+            rules={[{ required: true, message: '请选择总监理工程师' }]}
+            extra="负责本合同审批的总监理工程师"
+          >
+            <Select
+              placeholder="请选择总监理工程师"
+              onChange={setSelectedSupervisor}
+              disabled={aiReviewing}
+            >
+              <Option value="韦江腾">韦江腾</Option>
+              <Option value="赵雄飞">赵雄飞</Option>
+              <Option value="许小嘉">许小嘉</Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            label="销售意见"
+            name="comment"
+            rules={[{ required: true, message: '请填写销售意见' }]}
+          >
+            <Input.TextArea
+              placeholder="请填写销售提交的审批意见，如：合同条款已审核，同意提交审批。"
+              rows={3}
+              disabled={aiReviewing}
+            />
+          </Form.Item>
+
+          {aiReviewing && (
+            <div style={{ textAlign: 'center', padding: 24, background: '#e6f7ff', borderRadius: 8, marginTop: 8 }}>
+              <Spin size="large" tip="AI正在智能审核监理合同条款，请稍候..." />
+            </div>
+          )}
+
+          {aiReviewResult && !aiReviewing && (
+            <div style={{ marginTop: 16, padding: 16, background: '#fff7e6', border: '1px solid #ffd591', borderRadius: 8 }}>
+              <div style={{ fontWeight: 'bold', color: '#d46b08', marginBottom: 10, fontSize: 15 }}>
+                <RobotOutlined style={{ marginRight: 8 }} />
+                AI智能审核风险提示
+              </div>
+              <div style={{ color: '#595959' }}>
+                {aiReviewResult.map((item, idx) => (
+                  <div key={idx} style={{ padding: '6px 0', borderBottom: idx < aiReviewResult.length - 1 ? '1px dashed #ffd591' : 'none' }}>
+                    风险 {idx + 1}：{item}
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: 12, padding: 10, background: '#fff', borderRadius: 4, fontSize: 13, color: '#8c8c8c' }}>
+                请确认是否接受上述风险并继续提交审批？继续提交后合同将进入总监理工程师审批节点。
+              </div>
+            </div>
+          )}
+        </Form>
+      </Modal>
     </div>
   )
 }

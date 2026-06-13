@@ -40,7 +40,7 @@ export interface ProjectItem {
 }
 
 // ---------- 合同 ----------
-export type ContractStatus = '待审批' | '执行中' | '即将到期' | '已完成' | '已作废' | '已驳回' | '已审批'
+export type ContractStatus = '待审批' | '待总监理工程师审批' | '待部门经理审批' | '待分管副总经理审批' | '执行中' | '即将到期' | '已完成' | '已作废' | '已驳回' | '已审批'
 
 export interface ContractAttachment {
   name: string

@@ -354,7 +354,7 @@ const ProjectRelationPanel: React.FC = () => {
         okText="关闭"
         cancelButtonProps={{ style: { display: 'none' } }}
         width={1000}
-        bodyStyle={{ maxHeight: '70vh', overflowY: 'auto' }}
+        styles={{ body: { maxHeight: '70vh', overflowY: 'auto' } }}
       >
         {currentItem && (
           <div>
@@ -463,7 +463,7 @@ const ProjectRelationPanel: React.FC = () => {
         width={780}
         okText="保存"
         cancelText="取消"
-        bodyStyle={{ maxHeight: '70vh', overflowY: 'auto' }}
+        styles={{ body: { maxHeight: '70vh', overflowY: 'auto' } }}
       >
         <Form form={partyEditForm} layout="vertical">
           <Card size="small" title="负责人（1人）" style={{ marginBottom: 12 }} type="inner">

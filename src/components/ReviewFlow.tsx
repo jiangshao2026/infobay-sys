@@ -28,8 +28,12 @@ export interface ApprovalChain {
   levels: string[]
   /** 各节点默认审批人（与 levels 对应） */
   reviewers: string[]
+  /** 各节点审批人角色（与 levels 对应，用于权限判断） */
+  roles?: string[]
   /** 各节点默认审批意见（与 levels 对应） */
   defaultComments: string[]
+  /** 各节点通过后的下一个状态（与 levels 对应，null 表示到终点） */
+  nextStatus?: (string | null)[]
   /** 供 ReviewModal 下拉选择的候选审批人 */
   reviewerOptions: string[]
   /** 通过时的最终状态（最后一级审批通过后应用此状态） */
@@ -38,23 +42,28 @@ export interface ApprovalChain {
   rejectedStatus: string
   /** 中间级通过后的状态（可选，若为空则保持原状态） */
   inProgressStatus?: string
+  /** 仅销售可发起的审批（如监理合同），第一级为销售发起 */
+  salesInitiated?: boolean
 }
 
 export const APPROVAL_CHAINS: Record<ApprovalChainType, ApprovalChain> = {
   CONTRACT: {
     type: 'CONTRACT',
-    levels: ['销售审批', '总监理工程师审批', '部门经理审批', '分管副总经理审批'],
+    levels: ['销售发起', '总监理工程师审批', '部门经理审批', '分管副总经理审批'],
     reviewers: ['孙永秀', '韦江腾', '王华', '王小平'],
+    roles: ['销售', '总监理工程师', '部门经理', '副总经理'],
     defaultComments: [
-      '合同条款符合销售要求，同意提交。',
+      '合同条款已审核，选择总监理工程师并提交。',
       '合同已审核，符合监理工作要求，同意。',
       '部门流程合规，同意。',
       '终审通过，合同可正式签订。',
     ],
-    reviewerOptions: ['孙永秀', '蔡海婷', '许琰芳', '李金花', '韦江腾', '滕海燕', '王华', '王小平'],
+    nextStatus: ['待总监理工程师审批', '待部门经理审批', '待分管副总经理审批', null],
+    reviewerOptions: ['孙永秀', '韦江腾', '赵雄飞', '许小嘉', '王华', '王小平', '蔡海婷', '许琰芳', '李金花', '滕海燕'],
     finalApprovedStatus: '已审批',
     rejectedStatus: '已驳回',
     inProgressStatus: '审批中',
+    salesInitiated: true,
   },
   KNOWLEDGE: {
     type: 'KNOWLEDGE',
@@ -222,8 +231,10 @@ export interface ReviewModalProps {
   }) => void
   /** 可选候选审批人列表 */
   reviewerOptions?: string[]
-  /** 默认审批人初始值 */
+  /** 默认审批人初始值（若未提供 currentUser 则使用） */
   defaultReviewer?: string
+  /** 当前登录用户姓名；提供后审批人固定为该用户且不可修改 */
+  currentUser?: string
   /** 允许选择的状态（默认 '通过'|'驳回'） */
   allowActions?: Array<'通过' | '驳回'>
   /** 确认按钮文本 */
@@ -232,16 +243,22 @@ export interface ReviewModalProps {
 
 export const ReviewModal: React.FC<ReviewModalProps> = ({
   open,
-  title = '审批操作',
+  title = '合同审批',
   onClose,
   onSubmit,
   reviewerOptions = ['韦江腾', '滕海燕', '孙永秀', '蔡海婷', '许琰芳', '李金花', '王华', '王小平'],
   defaultReviewer,
+  currentUser,
   allowActions = ['通过', '驳回'],
   okText = '提交审批',
 }) => {
   const [form] = Form.useForm()
   const [submitting, setSubmitting] = useState(false)
+
+  // 审批人默认值：优先使用 currentUser，否则 defaultReviewer，否则取候选列表第一项
+  const reviewerValue = currentUser || defaultReviewer || reviewerOptions[0]
+  // 是否锁定审批人（提供了 currentUser 则锁定为当前用户不可更改）
+  const reviewerLocked = Boolean(currentUser)
 
   const handleOk = async () => {
     try {
@@ -284,7 +301,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
         layout="vertical"
         initialValues={{
           status: allowActions[0] || '通过',
-          reviewer: defaultReviewer || reviewerOptions[0],
+          reviewer: reviewerValue,
         }}
       >
         <Form.Item
@@ -304,7 +321,8 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
           rules={[{ required: true, message: '请选择审批人' }]}
         >
           <Select
-            showSearch
+            disabled={reviewerLocked}
+            showSearch={!reviewerLocked}
             placeholder="请选择或输入审批人"
             options={reviewerOptions.map(r => ({ label: r, value: r }))}
             filterOption={(input, option) =>
@@ -389,7 +407,7 @@ const STATUS_PENDING = new Set([
   '待审批', '一审中', '审批中', '待整改', '整改中', '待复查', '待处理',
   '处理中', '待提交', '待验收', '验收中', '待归档', '归档中',
   '待收款', '待支付', '编制中', '草稿', '待签订', '待启动',
-  '待支付', '待收款',
+  '待总监理工程师审批', '待部门经理审批', '待分管副总经理审批',
 ])
 /** 终止类：已作废/中止等，不显示 */
 const STATUS_TERMINATED = new Set(['已作废', '已中止', '已取消', '已暂停', '滞后'])

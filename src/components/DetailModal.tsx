@@ -64,6 +64,9 @@ export const statusColor = (status: string): string => {
     case '待收款':
     case '待复查':
     case '待整改':
+    case '待总监理工程师审批':
+    case '待部门经理审批':
+    case '待分管副总经理审批':
       return 'gold'
     // —— 完成/通过类 ——
     case '已完成':

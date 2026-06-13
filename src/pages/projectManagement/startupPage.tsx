@@ -60,11 +60,11 @@ const initialData: StartupItem[] = [
     key: 's1',
     code: 'KG-2025-001',
     projectCode: 'XB2005-0037',
-    projectName: '广东省市场监管局信息化项目(2025年第二批)',
+    projectName: '广东省市场监督管理局信息化项目（2025年第二批）',
     applicant: '广东省信息中心',
     planDate: '2025-03-15',
     estimatedDays: 470,
-    description: '承建单位已完成施工组织设计、专项方案编制及人员、材料、设备进场准备工作，申请于 2025-03-15 正式开工。',
+    description: '承建单位已完成施工组织设计、专项方案编制及人员、材料、设备进场准备工作，申请于2025-03-15正式开工。',
     attachments: [
       { name: '施工组织设计.pdf', url: '#' },
       { name: '专项施工方案.docx', url: '#' },
@@ -85,7 +85,7 @@ const initialData: StartupItem[] = [
         key: 's1-r2',
         code: 'KG-2025-001-R2',
         level: 2,
-        reviewer: '总监理工程师-李强',
+        reviewer: '总监理工程师-李己',
         status: '通过',
         comment: '已复核开工准备工作，同意签发开工令。',
         date: '2025-03-12 09:15:00',
@@ -112,7 +112,7 @@ const initialData: StartupItem[] = [
         key: 's2-r1',
         code: 'KG-2025-002-R1',
         level: 1,
-        reviewer: '监理工程师-王磊',
+        reviewer: '监理工程师-王晓',
         status: '通过',
         comment: '开工条件已具备，实施方案可行，同意提交总监审批。',
         date: '2025-01-05 11:00:00',
@@ -141,8 +141,8 @@ const initialData: StartupItem[] = [
     key: 's4',
     code: 'KG-2025-004',
     projectCode: 'XB2005-0301',
-    projectName: '番禺区排水管网基础数据完善及厂网河一体化信息系统建设项目',
-    applicant: '广州市番禺区水务局',
+    projectName: '荔湾区排水管网基础数据完善及厂网河一体化信息系统建设项目',
+    applicant: '广州市荔湾区水务局',
     planDate: '2024-11-10',
     estimatedDays: 600,
     description: '承建单位已完成施工组织设计及设备进场申请开工。',
@@ -164,7 +164,7 @@ const initialData: StartupItem[] = [
         key: 's4-r2',
         code: 'KG-2025-004-R2',
         level: 2,
-        reviewer: '总监理工程师-李强',
+        reviewer: '总监理工程师-李己',
         status: '驳回',
         comment: '施工方案中缺少排水管网建模专项方案，请补充完善后重新提交。',
         date: '2024-11-08 09:30:00',
@@ -372,7 +372,7 @@ function StartupPage() {
         title: '工程开工令',
         subtitle: `承建单位：${item.applicant}`,
         body: [
-          `根据监理合同及相关法规要求，经监理工程师对承建单位提交的开工申请及实施方案进行审核，现依据审批意见颁发本开工令。`,
+          `根据监理合同及相关法规要求，经监理工程师对承建单位提交的开工申请及实施方案进行审核，现依据审批意见签发本开工令。`,
           `项目名称：${item.projectName}`,
           `承建单位：${item.applicant}`,
           `计划开工日期：${item.planDate}`,
@@ -604,7 +604,11 @@ function StartupPage() {
           <Form.Item name="description" label="开工说明">
             <Input.TextArea rows={3} placeholder="请输入开工说明" />
           </Form.Item>
-          <Form.Item name="attachments" label="实施方案附件">
+          <Form.Item
+            name="attachments"
+            label="实施方案附件"
+            getValueProps={(fileList) => ({ fileList })}
+          >
             <Upload
               multiple
               beforeUpload={() => false}
@@ -688,7 +692,11 @@ function StartupPage() {
           <Form.Item name="description" label="开工说明">
             <Input.TextArea rows={3} placeholder="请输入开工说明" />
           </Form.Item>
-          <Form.Item name="attachments" label="实施方案附件（重新上传将替换原附件）">
+          <Form.Item
+            name="attachments"
+            label="实施方案附件（重新上传将替换原附件）"
+            getValueProps={(fileList) => ({ fileList })}
+          >
             <Upload
               multiple
               beforeUpload={() => false}

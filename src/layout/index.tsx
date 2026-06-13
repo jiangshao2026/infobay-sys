@@ -17,7 +17,8 @@ import {
   UserOutlined,
 } from '@ant-design/icons'
 import { useUser } from '../context/UserContext'
-import { Routes, Route, useLocation, Link } from 'react-router-dom'
+import { AppDataProvider } from '../context/AppDataContext'
+import { Routes, Route, useLocation, useNavigate, Link } from 'react-router-dom'
 import Dashboard from '../pages/dashboard'
 // 项目管理
 import ProjectManagement from '../pages/projectManagement'
@@ -68,6 +69,12 @@ import KnowledgeQA from '../pages/knowledgeBase/qaPage'
 // 监理师管理
 import SupervisorList from '../pages/supervisorManagement/supervisorPage'
 import SupervisorCert from '../pages/supervisorManagement/certificatePage'
+// 系统管理
+import SettingOutlined from '@ant-design/icons/SettingOutlined'
+import OrganizationPage from '../pages/systemManagement/organizationPage'
+import UserPage from '../pages/systemManagement/userPage'
+import PermissionPage from '../pages/systemManagement/permissionPage'
+import DataPage from '../pages/systemManagement/dataPage'
 
 const { Header, Sider, Content } = AntLayout
 
@@ -194,11 +201,23 @@ const menuItems = [
       { key: '/knowledge/qa', label: <Link to="/knowledge/qa">智能问答</Link> },
     ],
   },
+  {
+    key: '/system',
+    icon: <SettingOutlined />,
+    label: '系统管理',
+    children: [
+      { key: '/system/organization', label: <Link to="/system/organization">组织管理</Link> },
+      { key: '/system/user', label: <Link to="/system/user">用户管理</Link> },
+      { key: '/system/permission', label: <Link to="/system/permission">权限管理</Link> },
+      { key: '/system/data', label: <Link to="/system/data">数据管理</Link> },
+    ],
+  },
 ]
 
 function Layout() {
   const [collapsed, setCollapsed] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
   const { token } = theme.useToken()
   const { currentUser, login } = useUser()
   const [loginModalVisible, setLoginModalVisible] = useState(false)
@@ -260,7 +279,8 @@ function Layout() {
   }, [location.pathname])
 
   return (
-    <AntLayout style={{ minHeight: '100vh' }}>
+    <AppDataProvider>
+      <AntLayout style={{ minHeight: '100vh' }}>
       <Sider
         trigger={null}
         collapsible
@@ -388,6 +408,10 @@ function Layout() {
                 message.success('登录成功')
                 setLoginModalVisible(false)
                 loginForm.resetFields()
+                // 跳转到工作台
+                navigate('/dashboard')
+                // 收起所有已展开的左侧菜单
+                setOpenKeys([])
               } else {
                 message.error(result.message || '登录失败')
               }
@@ -478,10 +502,17 @@ function Layout() {
             <Route path="/supervisor" element={<SupervisorList />} />
             <Route path="/supervisor/list" element={<SupervisorList />} />
             <Route path="/supervisor/certificate" element={<SupervisorCert />} />
+            {/* 系统管理 */}
+            <Route path="/system" element={<DataPage />} />
+            <Route path="/system/organization" element={<OrganizationPage />} />
+            <Route path="/system/user" element={<UserPage />} />
+            <Route path="/system/permission" element={<PermissionPage />} />
+            <Route path="/system/data" element={<DataPage />} />
           </Routes>
         </Content>
       </AntLayout>
     </AntLayout>
+    </AppDataProvider>
   )
 }
 

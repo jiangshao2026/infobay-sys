@@ -455,7 +455,11 @@ function Plan() {
           <Form.Item name="description" label="描述">
             <Input.TextArea rows={3} placeholder="请输入描述" />
           </Form.Item>
-          <Form.Item label="文档附件">
+          <Form.Item
+            name="addAttachments"
+            label="文档附件"
+            getValueProps={(fileList) => ({ fileList })}
+          >
             <Upload
               multiple
               beforeUpload={() => false}
@@ -565,7 +569,11 @@ function Plan() {
           <Form.Item name="description" label="描述">
             <Input.TextArea rows={3} placeholder="请输入描述" />
           </Form.Item>
-          <Form.Item label="文档附件">
+          <Form.Item
+            name="editAttachments"
+            label="文档附件"
+            getValueProps={(fileList) => ({ fileList })}
+          >
             <Upload
               multiple
               beforeUpload={() => false}
