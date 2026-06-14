@@ -1,6 +1,7 @@
 import { Card, Table, Space, Button, Modal, Form, Input, message, Popconfirm, Tag, Select } from 'antd'
 import { TeamOutlined, PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, EyeOutlined } from '@ant-design/icons'
 import { useState } from 'react'
+import { usePersistedState } from '../../hooks/usePersistedState'
 import { CompactTableCssOnly } from '../../components/DetailModal'
 
 const { Option } = Select
@@ -24,7 +25,7 @@ const initDepts: DeptItem[] = [
 const statusColors: Record<string, string> = { '正常': 'green', '停用': 'red' }
 
 function OrganizationPage() {
-  const [list, setList] = useState<DeptItem[]>(initDepts)
+  const [list, setList] = usePersistedState<DeptItem[]>('sys-org', initDepts)
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [isViewVisible, setIsViewVisible] = useState(false)
   const [currentItem, setCurrentItem] = useState<DeptItem | null>(null)
@@ -89,14 +90,16 @@ function OrganizationPage() {
       title: '操作', key: 'action', width: 240,
       render: (_: unknown, record: DeptItem) => (
         <Space size="small">
-          <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => handleView(record)}>查看</Button>
-          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>编辑</Button>
-          <Button type="link" size="small" onClick={() => toggleStatus(record)}>
+          <Button type="link" size="small" icon={<EyeOutlined />} onClick={(e) => { e.stopPropagation(); handleView(record) }}>查看</Button>
+          <Button type="link" size="small" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); handleEdit(record) }}>编辑</Button>
+          <Button type="link" size="small" onClick={(e) => { e.stopPropagation(); toggleStatus(record) }}>
             {record.status === '正常' ? '停用' : '启用'}
           </Button>
-          <Popconfirm title="确定删除此部门？" onConfirm={() => handleDelete(record.key)} okText="确定" cancelText="取消">
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>删除</Button>
-          </Popconfirm>
+          <span onClick={(e) => e.stopPropagation()}>
+            <Popconfirm title="确定删除此部门？" onConfirm={() => handleDelete(record.key)} okText="确定" cancelText="取消">
+              <Button type="link" size="small" danger icon={<DeleteOutlined />}>删除</Button>
+            </Popconfirm>
+          </span>
         </Space>
       ),
     },

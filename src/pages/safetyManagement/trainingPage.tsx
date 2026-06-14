@@ -8,6 +8,7 @@ import type { SafetyTrainingItem, SFTrainingStatus, DocumentAttachment } from '.
 import { DetailModal, descItem, descText, CompactTableCssOnly } from '../../components/DetailModal'
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
 
+import { usePersistedState } from '../../hooks/usePersistedState'
 const { Option } = Select
 const { TextArea } = Input
 
@@ -25,7 +26,7 @@ const trainingStatusColor = (status: string): string => {
 }
 
 const TrainingPanel: React.FC = () => {
-  const [list, setList] = useState<SafetyTrainingItem[]>(initialData)
+  const [list, setList] = usePersistedState<SafetyTrainingItem[]>('safety-training', initialData)
 const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)

@@ -7,6 +7,7 @@ import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import type { ChangeRequestItem, CRStatus, ApprovalRecord } from '../../types/projectManagement'
 import { DetailModal, descItem, descText, CompactTableCssOnly } from '../../components/DetailModal'
 import { ReviewModal, ReviewTimeline, getApprovalRecords, APPROVAL_CHAINS } from '../../components/ReviewFlow'
+import { useUser } from '../../context/UserContext'
 import { DocumentList } from '../../components/DocumentUploader'
 import { formatCurrency } from '../../utils/format'
 
@@ -73,7 +74,8 @@ interface ReviewPageProps {}
 
 const ReviewPanel: React.FC<ReviewPageProps> = () => {
   const [list, setList] = usePersistedState<ChangeRequestItem[]>('change-review-list', initialData.filter(item => isPendingStatus(item.status)))
-const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
+  const { currentUser } = useUser()
+const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('changeControl-reviewPage-approval', {})
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
   const [isReviewModalVisible, setIsReviewModalVisible] = useState(false)
   const [currentItem, setCurrentItem] = useState<ChangeRequestItem | null>(null)
@@ -261,11 +263,11 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
       message.success('已驳回')
     } else {
       const nextStatus = nextStatusMap[currentItem.status] || '已审批'
-      const updated = initialData.map(item =>
+      const isLast = nextStatus === '已审批'
+      setList(prev => { const updated = prev.map(item =>
         item.key === key ? { ...item, status: nextStatus, currentLevel: getLevelFromStatus(nextStatus) } : item
-      )
-      setList(updated.filter(item => isPendingStatus(item.status)))
-      message.success('审批已提交')
+      ); return updated.filter(item => isPendingStatus(item.status)) })
+      message.success(isLast ? '审批已通过' : '审批已提交至下一级')
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)
@@ -352,6 +354,8 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
         onSubmit={handleReviewSubmit}
         reviewerOptions={APPROVAL_CHAINS.PROJECT.reviewerOptions}
         okText="提交审批"
+      
+        currentUser={currentUser.name}
       />
     </div>
   )

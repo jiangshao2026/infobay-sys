@@ -75,6 +75,7 @@ const normalizeLegacyList = (items: ChangeRequestItem[]): ChangeRecordItem[] =>
 
 function ChangeRecord() {
   const [list, setList] = usePersistedState<ChangeRecordItem[]>('change-record-list', normalizeLegacyList(initialData))
+  const { currentUser } = useUser()
 const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)

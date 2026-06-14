@@ -16,13 +16,14 @@ import projectsData, { getProjectNameByCode } from '../../data/projects'
 import type { AllocationItem, AllocationSearchParams } from '../../types/projectManagement'
 import { validateDateRange } from '../../utils/validation'
 
+import { usePersistedState } from '../../hooks/usePersistedState'
 const { RangePicker } = DatePicker
 const { Option } = Select
 
 const ASSIGNEE_OPTIONS = ['韦江腾', '李文海', '黄志强', '滕海燕', '张建华', '吴国栋', '郑慧敏', '冯志华']
 
 function Allocation() {
-  const [allocationList, setAllocationList] = useState<AllocationItem[]>(initialAllocationData)
+  const [allocationList, setAllocationList] = usePersistedState<AllocationItem[]>('project-alloc', initialAllocationData)
 const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
   const [currentAllocation, setCurrentAllocation] = useState<AllocationItem | null>(null)
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)

@@ -1,4 +1,4 @@
-import type { QualityCheckItem, DocumentAttachment } from '../types/projectManagement'
+import type { QualityCheckItem, DocumentAttachment, ApprovalRecord } from '../types/projectManagement'
 
 const demoAttachments = (seed: string): DocumentAttachment[] => [
   {
@@ -63,7 +63,7 @@ const initialData: QualityCheckItem[] = [
     issues: [],
     level: '一般',
     reviewer: '韦江腾',
-    status: '已完成',
+    status: '已审批',
     comments: '各项指标均满足设计要求，可进入下一阶段。',
     attachments: demoAttachments('qc3'),
   },
@@ -78,7 +78,7 @@ const initialData: QualityCheckItem[] = [
     issues: ['部分偏远海域丢包率达到1.8%'],
     level: '严重',
     reviewer: '韦江腾',
-    status: '一审中',
+    status: '一审通过',
     comments: '需要追加信号中继方案，现场记录已上传。',
     attachments: demoAttachments('qc4'),
   },
@@ -93,7 +93,7 @@ const initialData: QualityCheckItem[] = [
     issues: ['预警推送短信延迟达2分钟'],
     level: '较严重',
     reviewer: '黄志强',
-    status: '已完成',
+    status: '已审批',
     comments: '基础功能通过，短信通道需要整改后重测。',
     attachments: demoAttachments('qc5'),
   },
@@ -113,5 +113,27 @@ const initialData: QualityCheckItem[] = [
     attachments: demoAttachments('qc6'),
   },
 ]
+
+// 初始审批记录：为状态为"一审通过"或"已审批"的记录补充一审记录
+// 一审由监理工程师滕海燕审批，二审由总监理工程师韦江腾审批
+export const initialCheckApprovalMap: Record<string, ApprovalRecord[]> = {
+  'qc-1': [
+    { key: 'qc-1-r1', code: 'QC-2025-001-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '检查项完整，基本满足要求，同意通过一审。', date: '2025-05-12 16:00:00' },
+  ],
+  'qc-3': [
+    { key: 'qc-3-r1', code: 'QC-2025-003-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '各项指标均满足设计要求。', date: '2025-04-18 15:00:00' },
+    { key: 'qc-3-r2', code: 'QC-2025-003-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '复核无误，终审通过。', date: '2025-04-19 10:00:00' },
+  ],
+  'qc-4': [
+    { key: 'qc-4-r1', code: 'QC-2025-004-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '定位测试完成，需进一步优化偏远海域方案。', date: '2025-05-22 17:00:00' },
+  ],
+  'qc-5': [
+    { key: 'qc-5-r1', code: 'QC-2025-005-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '基础功能检查通过，短信通道需整改。', date: '2025-06-20 16:00:00' },
+    { key: 'qc-5-r2', code: 'QC-2025-005-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '复核通过，终审完成。', date: '2025-06-21 09:00:00' },
+  ],
+  'qc-6': [
+    { key: 'qc-6-r1', code: 'QC-2025-006-R1', level: 1, reviewer: '滕海燕', status: '驳回', comment: '历史数据迁移需提供补充方案，暂不通过。', date: '2025-05-30 14:00:00' },
+  ],
+}
 
 export default initialData

@@ -527,9 +527,9 @@ export interface DocumentAttachment {
 // ============================================================
 export type QCLevel = '一般' | '较严重' | '严重'
 export type QCIssueLevel = '轻微' | '一般' | '较严重' | '严重'
-export type QCCheckStatus = '待审批' | '一审中' | '一审通过' | '已完成' | '已驳回'
+export type QCCheckStatus = '待审批' | '一审通过' | '已审批' | '已驳回'
 export type QCIssueStatus = '待整改' | '整改中' | '待复查' | '已完成' | '已驳回'
-export type QCReportStatus = '草稿' | '待审批' | '一审中' | '一审通过' | '已发布' | '已驳回'
+export type QCReportStatus = '草稿' | '待审批' | '一审通过' | '已审批' | '已驳回'
 export type QCReportType = '周报' | '月报' | '专项报告' | '阶段报告'
 
 export interface QualityCheckItem {

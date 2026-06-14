@@ -2,11 +2,13 @@ import { Card, Table, Button, Space, Input, Select, DatePicker, Modal, Form, mes
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
-import initialCheckData from '../../data/qualityChecks'
+import initialCheckData, { initialCheckApprovalMap } from '../../data/qualityChecks'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import type { QualityCheckItem, QCLevel, QCCheckStatus, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
 import { DetailModal, descItem, descText, descTag, CompactTableCssOnly } from '../../components/DetailModal'
 import { ReviewModal, ReviewTimeline, getApprovalRecords, APPROVAL_CHAINS } from '../../components/ReviewFlow'
+import { useUser } from '../../context/UserContext'
+import { usePersistedState } from '../../hooks/usePersistedState'
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
 
 const { Option } = Select
@@ -29,11 +31,9 @@ const checkStatusColor = (status: string): string => {
   switch (status) {
     case '待审批':
       return 'gold'
-    case '一审中':
-      return 'cyan'
     case '一审通过':
-      return 'blue'
-    case '已完成':
+      return 'cyan'
+    case '已审批':
       return 'green'
     case '已驳回':
       return 'volcano'
@@ -42,17 +42,12 @@ const checkStatusColor = (status: string): string => {
   }
 }
 
-const nextCheckStatus = (status: QCCheckStatus): QCCheckStatus => {
-  const flow: QCCheckStatus[] = ['待审批', '一审中', '一审通过', '已完成']
-  const idx = flow.indexOf(status)
-  return idx >= 0 && idx < flow.length - 1 ? flow[idx + 1] : status
-}
-
 interface CheckPageProps {}
 
 const CheckPanel: React.FC<CheckPageProps> = () => {
-  const [list, setList] = useState<QualityCheckItem[]>(initialCheckData)
-const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
+  const [list, setList] = usePersistedState<QualityCheckItem[]>('quality-check', initialCheckData)
+  const { currentUser } = useUser()
+  const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('qualityControl-checkPage-approval', initialCheckApprovalMap)
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -145,8 +140,11 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
         <Space size="small" style={{ display: 'flex', flexWrap: 'wrap' }}>
           <Button type="link" icon={<EyeOutlined />} size="small" onClick={() => handleView(record)}>查看</Button>
           <Button type="link" icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)}>编辑</Button>
-          {record.status === '待审批' && (
-            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>发起审批</Button>
+          {(record.status === '待审批' && (currentUser.role === '监理工程师' || currentUser.role === '总监理工程师')) && (
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>审批</Button>
+          )}
+          {record.status === '一审通过' && currentUser.role === '总监理工程师' && (
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>审批</Button>
           )}
           <Popconfirm
             title="确定删除此质量检查记录？"
@@ -279,7 +277,7 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
     const existingRecords = approvalMap[key] || []
     const nextLevel = existingRecords.length + 1
     const newRecord: ApprovalRecord = {
-      key: `${key}-${nextLevel}`,
+      key: `${key}-r${nextLevel}-${Date.now()}`,
       code: `${currentItem.code}-R${nextLevel}`,
       level: nextLevel,
       reviewer: payload.reviewer,
@@ -290,13 +288,12 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
     setApprovalMap(prev => ({ ...prev, [key]: [...existingRecords, newRecord] }))
 
     if (payload.status === '驳回') {
-      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '已驳回' as QCCheckStatus } : item); return r })
-      message.success('已驳回')
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '待审批' as QCCheckStatus } : item); return r })
+      message.success('已驳回，返回待审批')
     } else {
-      const currentStatus = currentItem.status
-      const next = nextCheckStatus(currentStatus)
-      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: next } : item); return r })
-      message.success('审批已提交')
+      const newStatus: QCCheckStatus = currentItem.status === '待审批' ? '一审通过' : '已审批'
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: newStatus } : item); return r })
+      message.success(newStatus === '已审批' ? '终审已通过' : '一审通过，等待总监理工程师终审')
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)
@@ -349,9 +346,8 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
         <Form.Item name="status" label="状态" rules={[{ required: true, message: '请选择状态' }]} style={{ flex: 1 }}>
           <Select placeholder="请选择状态">
             <Option value="待审批">待审批</Option>
-            <Option value="一审中">一审中</Option>
             <Option value="一审通过">一审通过</Option>
-            <Option value="已完成">已完成</Option>
+            <Option value="已审批">已审批</Option>
             <Option value="已驳回">已驳回</Option>
           </Select>
         </Form.Item>
@@ -382,9 +378,8 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
           <Form.Item name="status">
             <Select placeholder="状态" style={{ width: 130 }} allowClear>
               <Option value="待审批">待审批</Option>
-              <Option value="一审中">一审中</Option>
               <Option value="一审通过">一审通过</Option>
-              <Option value="已完成">已完成</Option>
+              <Option value="已审批">已审批</Option>
               <Option value="已驳回">已驳回</Option>
             </Select>
           </Form.Item>
@@ -450,11 +445,12 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
 
       <ReviewModal
         open={isReviewModalVisible}
-        title="发起审批"
+        title="审批"
         onClose={handleCancel}
         onSubmit={handleReviewSubmit}
         reviewerOptions={APPROVAL_CHAINS.PROJECT.reviewerOptions}
         okText="提交审批"
+        currentUser={currentUser.name}
       />
     </div>
   )

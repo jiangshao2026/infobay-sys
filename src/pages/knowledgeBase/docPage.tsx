@@ -7,6 +7,7 @@ import type { KnowledgeDocItem, KDCategory, DocumentAttachment, KDDocReview } fr
 import { DetailModal, descItem, descText, CompactTableCssOnly, categoryColor, docStatusColor } from '../../components/DetailModal'
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
 import { ReviewModal, ReviewTimeline, getApprovalRecords, APPROVAL_CHAINS, type ApprovalRecord, exportDocument, printDocument } from '../../components/ReviewFlow'
+import { useUser } from '../../context/UserContext'
 
 const { Option } = Select
 const { TextArea } = Input
@@ -24,6 +25,7 @@ const DocPanel: React.FC<DocPanelProps> = ({ defaultCategory }) => {
   }, [defaultCategory])
 
   const [list, setList] = useState<KnowledgeDocItem[]>(filteredSource)
+  const { currentUser } = useUser()
 const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -143,7 +145,7 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
           <Button type="link" icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)}>编辑</Button>
           <Button type="link" size="small" onClick={() => handleOpenReview(record)}>点评</Button>
           {(record.status === '草稿' || !record.status) && (
-            <Button type="link" size="small" onClick={() => handleOpenApproval(record)}>发起审批</Button>
+            <Button type="link" size="small" onClick={() => handleOpenApproval(record)}>{record.status === '审批中' ? '审批' : '发起审批'}</Button>
           )}
           <Button type="link" size="small" onClick={() => handleView(record)}>查看审批</Button>
           <Popconfirm

@@ -1,6 +1,7 @@
 import { Card, Table, Button, Space, Input, Select, DatePicker, Modal, Form, message, Tag } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons'
 import {  useState, useRef , useEffect } from 'react'
+import { usePersistedState } from '../../hooks/usePersistedState'
 import dayjs from 'dayjs'
 import initialData from '../../data/meetings'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
@@ -70,7 +71,7 @@ const normalizeLegacyList = (items: MeetingItem[]): OrgMeetingItem[] =>
 
 function OrgMeeting() {
   const [list, setList] = usePersistedState<OrgMeetingItem[]>('org-meeting-list', normalizeLegacyList(initialData))
-const [isAddModalVisible, setIsAddModalVisible] = useState(false)
+  const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
   const [currentItem, setCurrentItem] = useState<OrgMeetingItem | null>(null)

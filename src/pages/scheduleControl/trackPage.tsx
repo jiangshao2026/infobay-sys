@@ -8,6 +8,7 @@ import type { ScheduleTrackItem, SCPhase, SCTrackStatus, DocumentAttachment } fr
 import { DetailModal, descItem, descText, CompactTableCssOnly } from '../../components/DetailModal'
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
 
+import { usePersistedState } from '../../hooks/usePersistedState'
 const { Option } = Select
 const { TextArea } = Input
 
@@ -41,7 +42,7 @@ const formatDeviation = (days: number): string => {
 interface TrackPageProps {}
 
 const TrackPanel: React.FC<TrackPageProps> = () => {
-  const [list, setList] = useState<ScheduleTrackItem[]>(initialData)
+  const [list, setList] = usePersistedState<ScheduleTrackItem[]>('schedule-track', initialData)
 const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)

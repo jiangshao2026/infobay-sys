@@ -2,6 +2,8 @@ import { Card, Table, Button, Space, Input, Select, DatePicker, Modal, Form, mes
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, CheckCircleOutlined, DownloadOutlined, PrinterOutlined } from '@ant-design/icons'
 import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
+import { usePersistedState } from '../../hooks/usePersistedState'
+import { useUser } from '../../context/UserContext'
 import initialData from '../../data/infoDocuments'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import type { InfoDocumentItem, IMDocType, IMDocUploader, IMDocStatus, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
@@ -18,8 +20,9 @@ const UPLOADER_OPTIONS: IMDocUploader[] = ['承建单位', '监理工程师']
 const STATUS_OPTIONS: IMDocStatus[] = ['待审批', '审批中', '已发布', '已驳回']
 
 const DocumentPanel: React.FC = () => {
-  const [list, setList] = useState<InfoDocumentItem[]>(initialData)
-const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
+  const [list, setList] = usePersistedState<DocMgmtItem[]>('info-doc', initialData)
+  const { currentUser } = useUser()
+const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('informationManagement-documentPage-approval', {})
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -128,8 +131,8 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
       render: (_: unknown, record: InfoDocumentItem) => (
         <Space size="small" style={{ display: 'flex', flexWrap: 'wrap' }}>
           <Button type="link" icon={<EyeOutlined />} size="small" onClick={() => handleView(record)}>查看详情</Button>
-          {record.status === '待审批' && (
-            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>发起审批</Button>
+          {record.status !== '已发布' && record.status !== '已驳回' && (
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>{record.status === '审批中' ? '审批' : '发起审批'}</Button>
           )}
           <Button type="link" icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)}>编辑</Button>
           <Popconfirm
@@ -554,7 +557,7 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
                 <Button icon={<DownloadOutlined />} onClick={() => handleExportOpinion(currentItem)}>导出监理审核意见</Button>
                 <Button icon={<PrinterOutlined />} onClick={() => handlePrintOpinion(currentItem)}>打印监理审核意见</Button>
                 {currentItem.status === '待审批' && (
-                  <Button type="primary" icon={<CheckCircleOutlined />} onClick={() => { setIsDetailModalVisible(false); handleReview(currentItem) }}>发起审批</Button>
+                  <Button type="primary" icon={<CheckCircleOutlined />} onClick={() => { setIsDetailModalVisible(false); handleReview(currentItem) }}>{record.status === '审批中' ? '审批' : '发起审批'}</Button>
                 )}
               </Space>
               <Divider style={{ margin: '12px 0' }} />
@@ -574,6 +577,8 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
         onSubmit={handleReviewSubmit}
         reviewerOptions={CHAIN.reviewerOptions}
         okText="提交审批"
+      
+        currentUser={currentUser.name}
       />
     </div>
   )

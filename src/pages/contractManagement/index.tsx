@@ -16,10 +16,11 @@ import { DetailModal, descItem, descText, descTag, statusColor, descAttachments,
 import { DocumentUploader } from '../../components/DocumentUploader'
 import AttachmentPreview from '../../components/AttachmentPreview'
 
+import { usePersistedState } from '../../hooks/usePersistedState'
 const { Option } = Select
 
 function ContractManagement() {
-  const [contractList, setContractList] = useState<ContractMgmtItem[]>(contractMgmtData)
+  const [contractList, setContractList] = usePersistedState<ContractMgmtItem[]>('contractmgmt-main', contractMgmtData)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
   const [currentItem, setCurrentItem] = useState<ContractMgmtItem | null>(null)
   const [isModalVisible, setIsModalVisible] = useState(false)

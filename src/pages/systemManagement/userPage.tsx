@@ -1,6 +1,7 @@
 import { Card, Table, Tag, Space, Button, Modal, Form, Input, Select, message, Popconfirm } from 'antd'
 import { UserOutlined, PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, EyeOutlined } from '@ant-design/icons'
 import { useState } from 'react'
+import { usePersistedState } from '../../hooks/usePersistedState'
 import { DEMO_USERS, type DemoUser } from '../../context/UserContext'
 import { CompactTableCssOnly } from '../../components/DetailModal'
 
@@ -12,7 +13,7 @@ const roleColorMap: Record<string, string> = {
 }
 
 function UserPage() {
-  const [list, setList] = useState<DemoUser[]>(DEMO_USERS)
+  const [list, setList] = usePersistedState<DemoUser[]>('sys-user', DEMO_USERS)
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [isViewVisible, setIsViewVisible] = useState(false)
   const [currentItem, setCurrentItem] = useState<DemoUser | null>(null)
@@ -82,11 +83,13 @@ function UserPage() {
       title: '操作', key: 'action', width: 200,
       render: (_: unknown, record: DemoUser) => (
         <Space size="small">
-          <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => handleView(record)}>查看</Button>
-          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>编辑</Button>
-          <Popconfirm title="确定删除此用户？" onConfirm={() => handleDelete(record.key)} okText="确定" cancelText="取消">
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>删除</Button>
-          </Popconfirm>
+          <Button type="link" size="small" icon={<EyeOutlined />} onClick={(e) => { e.stopPropagation(); handleView(record) }}>查看</Button>
+          <Button type="link" size="small" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); handleEdit(record) }}>编辑</Button>
+          <span onClick={(e) => e.stopPropagation()}>
+            <Popconfirm title="确定删除此用户？" onConfirm={() => handleDelete(record.key)} okText="确定" cancelText="取消">
+              <Button type="link" size="small" danger icon={<DeleteOutlined />}>删除</Button>
+            </Popconfirm>
+          </span>
         </Space>
       ),
     },

@@ -2,6 +2,7 @@ import { Card, Table, Button, Space, Input, Select, DatePicker, Modal, Form, mes
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
+import { usePersistedState } from '../../hooks/usePersistedState'
 import initialData from '../../data/costBudgets'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import type { CostBudgetItem, CCPhase, CCBudgetStatus, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
@@ -34,8 +35,8 @@ const budgetStatusColor = (status: string): string => {
 interface BudgetPageProps {}
 
 const BudgetPanel: React.FC<BudgetPageProps> = () => {
-  const [list, setList] = useState<CostBudgetItem[]>(initialData)
-const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
+  const [list, setList] = usePersistedState<CostBudgetItem[]>('cost-budget', initialData)
+const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('costControl-budgetPage-approval', {})
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)

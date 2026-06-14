@@ -1,6 +1,7 @@
 import { Card, Table, Tag, Space, Button, Modal, Form, Input, Select, message, Popconfirm } from 'antd'
 import { SafetyCertificateOutlined, PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, EyeOutlined } from '@ant-design/icons'
 import { useState } from 'react'
+import { usePersistedState } from '../../hooks/usePersistedState'
 import { CompactTableCssOnly } from '../../components/DetailModal'
 
 const { Option } = Select
@@ -26,7 +27,7 @@ const roleColors: Record<string, string> = {
 }
 
 function PermissionPage() {
-  const [list, setList] = useState<PermItem[]>(initPerms)
+  const [list, setList] = usePersistedState<PermItem[]>('sys-perm', initPerms)
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [isViewVisible, setIsViewVisible] = useState(false)
   const [currentItem, setCurrentItem] = useState<PermItem | null>(null)
@@ -81,11 +82,13 @@ function PermissionPage() {
       title: '操作', key: 'action', width: 200,
       render: (_: unknown, record: PermItem) => (
         <Space size="small">
-          <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => handleView(record)}>查看</Button>
-          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>编辑</Button>
-          <Popconfirm title="确定删除此权限配置？" onConfirm={() => handleDelete(record.key)} okText="确定" cancelText="取消">
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>删除</Button>
-          </Popconfirm>
+          <Button type="link" size="small" icon={<EyeOutlined />} onClick={(e) => { e.stopPropagation(); handleView(record) }}>查看</Button>
+          <Button type="link" size="small" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); handleEdit(record) }}>编辑</Button>
+          <span onClick={(e) => e.stopPropagation()}>
+            <Popconfirm title="确定删除此权限配置？" onConfirm={() => handleDelete(record.key)} okText="确定" cancelText="取消">
+              <Button type="link" size="small" danger icon={<DeleteOutlined />}>删除</Button>
+            </Popconfirm>
+          </span>
         </Space>
       ),
     },

@@ -8,11 +8,12 @@ import type { InfoArchiveItem, IMDocCategory, IMArchiveStatus, DocumentAttachmen
 import { DetailModal, descItem, descText, CompactTableCssOnly, categoryColor, statusColor } from '../../components/DetailModal'
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
 
+import { usePersistedState } from '../../hooks/usePersistedState'
 const { Option } = Select
 const { TextArea } = Input
 
 const ArchivePanel: React.FC = () => {
-  const [list, setList] = useState<InfoArchiveItem[]>(initialData)
+  const [list, setList] = usePersistedState<FileArchiveItem[]>('info-archive', initialData)
 const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)

@@ -8,6 +8,7 @@ import type { FileArchiveItem, ACArchiveCategory, ACArchiveStatus, DocumentAttac
 import { DetailModal, descItem, descText, CompactTableCssOnly } from '../../components/DetailModal'
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
 
+import { usePersistedState } from '../../hooks/usePersistedState'
 const { Option } = Select
 const { TextArea } = Input
 
@@ -30,7 +31,7 @@ const categoryOptions: ACArchiveCategory[] = ['合同档案', '监理档案', '�
 const statusOptions: ACArchiveStatus[] = ['待归档', '归档中', '已归档', '已调阅']
 
 const FilePanel: React.FC = () => {
-  const [list, setList] = useState<FileArchiveItem[]>(initialData)
+  const [list, setList] = usePersistedState<FileArchiveItem[]>('accept-file', initialData)
 const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)

@@ -1,4 +1,4 @@
-import type { QualityReportItem, DocumentAttachment } from '../types/projectManagement'
+import type { QualityReportItem, DocumentAttachment, ApprovalRecord } from '../types/projectManagement'
 
 const att = (seed: string): DocumentAttachment[] => [
   {
@@ -34,7 +34,7 @@ const initialData: QualityReportItem[] = [
     reportDate: '2025-05-05',
     author: '韦江腾',
     summary: '指挥中心大屏与视频会议系统本月无重大问题，完成小问题修复共3项，稳定运行。',
-    status: '已发布',
+    status: '已审批',
     attachments: att('qr2'),
   },
   {
@@ -58,7 +58,7 @@ const initialData: QualityReportItem[] = [
     reportDate: '2025-06-01',
     author: '黄志强',
     summary: '平台基础功能稳定运行，预警推送通道存在轻微延迟，已列入下月整改计划。',
-    status: '草稿',
+    status: '待审批',
     attachments: att('qr4'),
   },
   {
@@ -70,9 +70,23 @@ const initialData: QualityReportItem[] = [
     reportDate: '2025-05-20',
     author: '韦江腾',
     summary: '登记系统完成阶段目标，总体质量达到预期，但性能指标仍需持续优化。',
-    status: '一审中',
+    status: '一审通过',
     attachments: att('qr5'),
   },
 ]
+
+// 初始审批记录：为状态为"一审通过"或"已审批"的记录补充审批历史
+export const initialReportApprovalMap: Record<string, ApprovalRecord[]> = {
+  'qr-1': [
+    { key: 'qr-1-r1', code: 'QR-2025-05-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '报告内容完整，数据准确，一审通过。', date: '2025-06-03 14:00:00' },
+  ],
+  'qr-2': [
+    { key: 'qr-2-r1', code: 'QR-2025-04-062-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '报告质量良好，无重大问题。', date: '2025-05-05 16:00:00' },
+    { key: 'qr-2-r2', code: 'QR-2025-04-062-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '终审通过，同意发布。', date: '2025-05-06 10:00:00' },
+  ],
+  'qr-5': [
+    { key: 'qr-5-r1', code: 'QR-2025-PH1-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '阶段评审报告内容详实，通过一审。', date: '2025-05-20 15:00:00' },
+  ],
+}
 
 export default initialData

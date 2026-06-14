@@ -8,6 +8,7 @@ import type { SupervisorCertificateItem, SPCertType, SPCertStatus, DocumentAttac
 import { DetailModal, descItem, descText, CompactTableCssOnly, typeColor, statusColor } from '../../components/DetailModal'
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
 
+import { usePersistedState } from '../../hooks/usePersistedState'
 const { Option } = Select
 
 const certTypeOptions: SPCertType[] = ['信息系统监理师', '信息系统项目管理师', '系统集成项目管理工程师', '系统架构设计师', '软件设计师', '软件造价工程师', '数据库系统工程师', '系统分析师', '其他']
@@ -19,7 +20,7 @@ const getSupervisorNameByCode = (code: string): string => {
 }
 
 const CertificatePanel: React.FC = () => {
-  const [list, setList] = useState<SupervisorCertificateItem[]>(initialData)
+  const [list, setList] = usePersistedState<SupervisorCertItem[]>('supervisor-cert', initialData)
 const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)

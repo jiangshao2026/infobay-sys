@@ -2,6 +2,8 @@ import { Card, Table, Button, Space, Input, Select, DatePicker, Modal, Form, mes
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
+import { usePersistedState } from '../../hooks/usePersistedState'
+import { useUser } from '../../context/UserContext'
 import initialData from '../../data/scheduleReports'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import type { ScheduleReportItem, SCReportType, SCReportStatus, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
@@ -28,8 +30,9 @@ const reportStatusColor = (status: string): string => {
 interface ReportPageProps {}
 
 const ReportPanel: React.FC<ReportPageProps> = () => {
-  const [list, setList] = useState<ScheduleReportItem[]>(initialData)
-const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
+  const [list, setList] = usePersistedState<ScheduleReportItem[]>('schedule-report', initialData)
+  const { currentUser } = useUser()
+const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('scheduleControl-reportPage-approval', {})
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -122,7 +125,7 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
           <Button type="link" icon={<EyeOutlined />} size="small" onClick={() => handleView(record)}>查看</Button>
           <Button type="link" icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)}>编辑</Button>
           {record.status !== '已发布' && (
-            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>发起审批</Button>
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>{record.status === '审批中' ? '审批' : '发起审批'}</Button>
           )}
           <Popconfirm
             title="确定删除此进度报告？"
@@ -251,6 +254,8 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
     const key = currentItem.key
     const existingRecords = approvalMap[key] || []
     const nextLevel = existingRecords.length + 1
+    const chain = APPROVAL_CHAINS.PROJECT
+    const isLast = nextLevel >= chain.levels.length
     const newRecord: ApprovalRecord = {
       key: `${key}-${nextLevel}`,
       code: `${currentItem.code}-R${nextLevel}`,
@@ -266,8 +271,8 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
       setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '草稿' as SCReportStatus } : item); return r })
       message.success('已驳回')
     } else {
-      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '已发布' as SCReportStatus } : item); return r })
-      message.success('审批已提交')
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: (isLast ? '已发布' : '审批中') as SCReportStatus } : item); return r })
+      message.success(isLast ? '审批已通过' : '审批已提交至下一级')
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)
@@ -412,6 +417,8 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
         onSubmit={handleReviewSubmit}
         reviewerOptions={APPROVAL_CHAINS.PROJECT.reviewerOptions}
         okText="提交审批"
+      
+        currentUser={currentUser.name}
       />
     </div>
   )

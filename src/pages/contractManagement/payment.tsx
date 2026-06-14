@@ -25,11 +25,12 @@ import {
   type DocumentKind,
 } from '../../components/ReviewFlow'
 
+import { usePersistedState } from '../../hooks/usePersistedState'
 const { Option } = Select
 
 function PaymentManagement() {
-  const [paymentList, setPaymentList] = useState<PaymentMgmtItem[]>(paymentMgmtData)
-const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
+  const [paymentList, setPaymentList] = usePersistedState<PaymentMgmtItem[]>('contractmgmt-pay', paymentMgmtData)
+const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('contractManagement-payment-approval', {})
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
   const [currentItem, setCurrentItem] = useState<PaymentMgmtItem | null>(null)
   const [isModalVisible, setIsModalVisible] = useState(false)
@@ -383,7 +384,7 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
           <Button type="link" icon={<EyeOutlined />} size="small" onClick={(e) => { e.stopPropagation(); handleView(record); }}>
             查看
           </Button>
-          {record.status === '待审批' && (
+          {(record.status === '待审批' || record.status === '审批中') && (
             <Button
               type="link"
               icon={<SafetyCertificateOutlined />}

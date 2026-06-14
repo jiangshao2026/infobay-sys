@@ -13,7 +13,7 @@ function DataPage() {
     const keys: string[] = []
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i)
-      if (k && k.startsWith('xb-demo-')) keys.push(k)
+      if (k && k.startsWith('xb-demo-v2-')) keys.push(k)
     }
     setStoredKeys(keys)
   }, [])
@@ -30,7 +30,7 @@ function DataPage() {
       const keys: string[] = []
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i)
-        if (k && k.startsWith('xb-demo-')) keys.push(k)
+        if (k && k.startsWith('xb-demo-v2-')) keys.push(k)
       }
       setStoredKeys(keys)
       setLoading(false)

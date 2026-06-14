@@ -7,6 +7,7 @@ import type { SupervisorItem, SPGender, SPEducation, SPTitle, SPPosition, SPStat
 import { DetailModal, descItem, descText, CompactTableCssOnly } from '../../components/DetailModal'
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
 
+import { usePersistedState } from '../../hooks/usePersistedState'
 const { Option } = Select
 const { TextArea } = Input
 
@@ -33,7 +34,7 @@ const statusOptions: SPStatus[] = ['在职', '离职', '停职', '退休']
 const certTypeOptions: SPCertType[] = ['信息系统监理师', '信息系统项目管理师', '系统集成项目管理工程师', '系统架构设计师', '软件设计师', '软件造价工程师', '数据库系统工程师', '系统分析师', '其他']
 
 const SupervisorPanel: React.FC = () => {
-  const [list, setList] = useState<SupervisorItem[]>(initialData)
+  const [list, setList] = usePersistedState<SupervisorItem[]>('supervisor-main', initialData)
 const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)

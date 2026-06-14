@@ -2,6 +2,8 @@ import { Card, Table, Button, Space, Input, Select, DatePicker, Modal, Form, mes
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
+import { usePersistedState } from '../../hooks/usePersistedState'
+import { useUser } from '../../context/UserContext'
 import initialData from '../../data/safetyIncidents'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import { formatCurrency } from '../../utils/format'
@@ -53,8 +55,9 @@ const incidentLevelColor = (level: string): string => {
 }
 
 const IncidentPanel: React.FC = () => {
-  const [list, setList] = useState<SafetyIncidentItem[]>(initialData)
-const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
+  const [list, setList] = usePersistedState<SafetyIncidentItem[]>('safety-incident', initialData)
+  const { currentUser } = useUser()
+const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('safetyManagement-incidentPage-approval', {})
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -314,6 +317,8 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
     const key = currentItem.key
     const existingRecords = approvalMap[key] || []
     const nextLevel = existingRecords.length + 1
+    const chain = APPROVAL_CHAINS.PROJECT
+    const isLast = nextLevel >= chain.levels.length
     const newRecord: ApprovalRecord = {
       key: `${key}-${nextLevel}`,
       code: `${currentItem.code}-R${nextLevel}`,
@@ -505,6 +510,8 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
         onSubmit={handleReviewSubmit}
         reviewerOptions={APPROVAL_CHAINS.PROJECT.reviewerOptions}
         okText="提交审批"
+      
+        currentUser={currentUser.name}
       />
     </div>
   )

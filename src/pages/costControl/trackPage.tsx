@@ -8,6 +8,7 @@ import { DetailModal, descItem, descText, CompactTableCssOnly } from '../../comp
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
 import { formatCurrency } from '../../utils/format'
 
+import { usePersistedState } from '../../hooks/usePersistedState'
 const { Option } = Select
 const { TextArea } = Input
 
@@ -33,7 +34,7 @@ const varianceColor = (v: number): string => {
 interface TrackPageProps {}
 
 const TrackPanel: React.FC<TrackPageProps> = () => {
-  const [list, setList] = useState<CostTrackItem[]>(initialData)
+  const [list, setList] = usePersistedState<CostTrackItem[]>('cost-track', initialData)
 const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)

@@ -4,6 +4,8 @@ import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
+import { usePersistedState } from '../../hooks/usePersistedState'
+import { useUser } from '../../context/UserContext'
 import planData from '../../data/plans'
 import type { PlanItem, PlanSearchParams, PlanType, PlanStatus } from '../../types/projectManagement'
 import { DetailModal, descItem, descText, descTag, statusColor, descAttachments, CompactTableCssOnly } from '../../components/DetailModal'
@@ -22,13 +24,14 @@ const PLAN_TYPES: PlanType[] = [
 ]
 
 function Plan() {
-  const [list, setList] = useState<PlanItem[]>(planData)
+  const [list, setList] = usePersistedState<PlanItem[]>('info-plan', planData)
+  const { currentUser } = useUser()
 const [isDetailVisible, setIsDetailVisible] = useState(false)
   const [currentPlan, setCurrentPlan] = useState<PlanItem | null>(null)
   const [isAddVisible, setIsAddVisible] = useState(false)
   const [isEditVisible, setIsEditVisible] = useState(false)
   const [isReviewModalVisible, setIsReviewModalVisible] = useState(false)
-  const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
+  const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('informationManagement-plan-approval', {})
   const [searchForm] = Form.useForm()
   const [addForm] = Form.useForm()
   const [editForm] = Form.useForm()
@@ -111,6 +114,8 @@ const [isDetailVisible, setIsDetailVisible] = useState(false)
     const key = currentPlan.key
     const existingRecords = approvalMap[key] || []
     const nextLevel = existingRecords.length + 1
+    const chain = APPROVAL_CHAINS.PROJECT
+    const isLast = nextLevel >= chain.levels.length
     const newRecord: ApprovalRecord = {
       key: `${key}-${nextLevel}`,
       code: `${currentPlan.code}-R${nextLevel}`,
@@ -123,7 +128,7 @@ const [isDetailVisible, setIsDetailVisible] = useState(false)
     setApprovalMap(prev => ({ ...prev, [key]: [...existingRecords, newRecord] }))
     if (payload.status === '通过') {
       setList(prev => {
-        const result = prev.map(item => item.key === key ? { ...item, status: '已审批' as PlanStatus } : item)
+        const result = prev.map(item => item.key === key ? { ...item, status: (isLast ? '已审批' : '审批中') as PlanStatus } : item)
         return result
       })
       if (currentPlan.key === key) {
@@ -296,8 +301,8 @@ const [isDetailVisible, setIsDetailVisible] = useState(false)
         <Space size="small" style={{ display: 'flex', flexWrap: 'wrap' }}>
           <Button type="link" icon={<EyeOutlined />} size="small" onClick={() => handleView(record)}>查看</Button>
           <Button type="link" icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)}>编辑</Button>
-          {record.status === '待审批' && (
-            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>发起审批</Button>
+          {record.status !== '已发布' && record.status !== '已驳回' && (
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>{record.status === '审批中' ? '审批' : '发起审批'}</Button>
           )}
           <Popconfirm
             title="确定删除此文档？"
@@ -633,6 +638,8 @@ const [isDetailVisible, setIsDetailVisible] = useState(false)
         onSubmit={handleReviewSubmit}
         reviewerOptions={APPROVAL_CHAINS.PROJECT.reviewerOptions}
         okText="提交审批"
+      
+        currentUser={currentUser.name}
       />
     </div>
   )

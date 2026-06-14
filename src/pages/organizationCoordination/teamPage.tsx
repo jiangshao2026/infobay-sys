@@ -1,6 +1,7 @@
 import { Card, Table, Button, Space, Modal, Form, Input, Select, message, Popconfirm, Tag, Descriptions, Row, Col, Divider, Empty } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, TeamOutlined, UserAddOutlined, SearchOutlined } from '@ant-design/icons'
 import { useState } from 'react'
+import { usePersistedState } from '../../hooks/usePersistedState'
 import initialData from '../../data/projectRelations'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import { statusColor, typeColor } from '../../components/DetailModal'
@@ -99,7 +100,7 @@ const PartySummaryCell: React.FC<{ party: RelationPartyInfo; color: string }> = 
 }
 
 const ProjectRelationPanel: React.FC = () => {
-  const [list, setList] = useState<ProjectRelationItem[]>(initialData)
+  const [list, setList] = usePersistedState<ProjectRelationItem[]>('org-team', initialData)
   const [isDetailVisible, setIsDetailVisible] = useState(false)
   const [currentItem, setCurrentItem] = useState<ProjectRelationItem | null>(null)
 

@@ -10,12 +10,13 @@ import { validateDateRange, parseAmountFromForm, amountToWanyuan } from '../../u
 import { DetailModal, descItem, descText, descTag, scaleColor, statusColor } from '../../components/DetailModal'
 import { CompactTableCssOnly } from '../../components/CompactTable'
 
+import { usePersistedState } from '../../hooks/usePersistedState'
 const { RangePicker } = DatePicker
 const { Option } = Select
 
 function ProjectManagement() {
   const navigate = useNavigate()
-  const [projectData, setProjectData] = useState<ProjectItem[]>(initialProjectData)
+  const [projectData, setProjectData] = usePersistedState<ProjectItem[]>('project-list', initialProjectData)
 const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)

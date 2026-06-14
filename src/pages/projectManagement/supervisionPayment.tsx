@@ -12,6 +12,7 @@ import { validatePaymentTotal, validateDateRange, parseAmountFromForm } from '..
 import { DetailModal, descItem, descText, descTag, statusColor } from '../../components/DetailModal'
 import { CompactTableCssOnly } from '../../components/CompactTable'
 
+import { usePersistedState } from '../../hooks/usePersistedState'
 const { RangePicker } = DatePicker
 
 const generatePaymentCode = (): string => {
@@ -27,7 +28,7 @@ const generateInvoiceCode = (): string => {
 }
 
 function SupervisionPayment() {
-  const [paymentList, setPaymentList] = useState<PaymentItem[]>(initialPaymentData)
+  const [paymentList, setPaymentList] = usePersistedState<PaymentItem[]>('project-spay', initialPaymentData)
 const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
   const [currentPayment, setCurrentPayment] = useState<PaymentItem | null>(null)
   const [isModalVisible, setIsModalVisible] = useState(false)

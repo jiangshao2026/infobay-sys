@@ -911,7 +911,7 @@ function SupervisionContract() {
 
           {aiReviewing && (
             <div style={{ textAlign: 'center', padding: 24, background: '#e6f7ff', borderRadius: 8, marginTop: 8 }}>
-              <Spin size="large" tip="AI正在智能审核监理合同条款，请稍候..." />
+              <Spin size="large"><div style={{ padding: 24 }}>AI正在智能审核监理合同条款，请稍候...</div></Spin>
             </div>
           )}
 

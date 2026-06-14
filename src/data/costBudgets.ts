@@ -23,7 +23,7 @@ const initialData: CostBudgetItem[] = [
     approvedAmount: 8200000,
     periodStart: '2025-01-01',
     periodEnd: '2026-06-30',
-    status: '一审通过',
+    status: '已审批',
     attachments: att('cb1'),
   },
   {

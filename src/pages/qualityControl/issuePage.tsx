@@ -7,6 +7,8 @@ import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import type { QualityIssueItem, QCIssueLevel, QCIssueStatus, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
 import { DetailModal, descItem, descText, CompactTableCssOnly, issueLevelColor, issueStatusColor } from '../../components/DetailModal'
 import { ReviewModal, ReviewTimeline, getApprovalRecords, APPROVAL_CHAINS } from '../../components/ReviewFlow'
+import { useUser } from '../../context/UserContext'
+import { usePersistedState } from '../../hooks/usePersistedState'
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
 
 const { Option } = Select
@@ -19,8 +21,9 @@ const issueStatusNext = (status: QCIssueStatus): QCIssueStatus => {
 }
 
 const IssuePanel: React.FC = () => {
-  const [list, setList] = useState<QualityIssueItem[]>(initialIssueData)
-const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
+  const [list, setList] = usePersistedState<QualityIssueItem[]>('quality-issue', initialIssueData)
+  const { currentUser } = useUser()
+const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('qualityControl-issuePage-approval', {})
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -284,6 +287,8 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
     const key = currentItem.key
     const existingRecords = approvalMap[key] || []
     const nextLevel = existingRecords.length + 1
+    const chain = APPROVAL_CHAINS.PROJECT
+    const isLast = nextLevel >= chain.levels.length
     const newRecord: ApprovalRecord = {
       key: `${key}-${nextLevel}`,
       code: `${currentItem.code}-R${nextLevel}`,
@@ -301,7 +306,7 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
     } else {
       const next = issueStatusNext(currentItem.status)
       setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: next } : item); return r })
-      message.success('审批已提交')
+      message.success(isLast ? '审批已通过' : '审批已提交至下一级')
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)
@@ -486,6 +491,8 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
         onSubmit={handleReviewSubmit}
         reviewerOptions={APPROVAL_CHAINS.PROJECT.reviewerOptions}
         okText="提交审批"
+      
+        currentUser={currentUser.name}
       />
     </div>
   )

@@ -2,11 +2,13 @@ import { Card, Table, Button, Space, Input, Select, Modal, Form, message, Popcon
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
-import initialReportData from '../../data/qualityReports'
+import initialReportData, { initialReportApprovalMap } from '../../data/qualityReports'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import type { QualityReportItem, QCReportStatus, QCReportType, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
 import { DetailModal, descItem, descText, CompactTableCssOnly } from '../../components/DetailModal'
 import { ReviewModal, ReviewTimeline, getApprovalRecords, APPROVAL_CHAINS } from '../../components/ReviewFlow'
+import { useUser } from '../../context/UserContext'
+import { usePersistedState } from '../../hooks/usePersistedState'
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
 
 const { Option } = Select
@@ -18,11 +20,9 @@ const reportStatusColor = (status: string): string => {
       return 'default'
     case '待审批':
       return 'gold'
-    case '一审中':
-      return 'cyan'
     case '一审通过':
-      return 'blue'
-    case '已发布':
+      return 'cyan'
+    case '已审批':
       return 'green'
     case '已驳回':
       return 'volcano'
@@ -46,15 +46,12 @@ const reportTypeColor = (type: string): string => {
   }
 }
 
-const reportStatusNext = (status: QCReportStatus): QCReportStatus => {
-  const flow: QCReportStatus[] = ['草稿', '待审批', '一审中', '一审通过', '已发布']
-  const idx = flow.indexOf(status)
-  return idx >= 0 && idx < flow.length - 1 ? flow[idx + 1] : status
-}
+
 
 const ReportPanel: React.FC = () => {
-  const [list, setList] = useState<QualityReportItem[]>(initialReportData)
-const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
+  const [list, setList] = usePersistedState<QualityReportItem[]>('quality-report', initialReportData)
+  const { currentUser } = useUser()
+  const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('qualityControl-reportPage-approval', initialReportApprovalMap)
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -147,8 +144,11 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
         <Space size="small" style={{ display: 'flex', flexWrap: 'wrap' }}>
           <Button type="link" icon={<EyeOutlined />} size="small" onClick={() => handleView(record)}>查看</Button>
           <Button type="link" icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)}>编辑</Button>
-          {record.status === '待审批' && (
-            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>发起审批</Button>
+          {(record.status === '待审批' && (currentUser.role === '监理工程师' || currentUser.role === '总监理工程师')) && (
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>审批</Button>
+          )}
+          {record.status === '一审通过' && currentUser.role === '总监理工程师' && (
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>审批</Button>
           )}
           <Popconfirm
             title="确定删除此质量报告？"
@@ -290,12 +290,12 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
     setApprovalMap(prev => ({ ...prev, [key]: [...existingRecords, newRecord] }))
 
     if (payload.status === '驳回') {
-      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '已驳回' as QCReportStatus } : item); return r })
-      message.success('已驳回')
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '待审批' as QCReportStatus } : item); return r })
+      message.success('已驳回，返回待审批')
     } else {
-      const next = reportStatusNext(currentItem.status)
-      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: next } : item); return r })
-      message.success('审批已提交')
+      const newStatus: QCReportStatus = currentItem.status === '待审批' ? '一审通过' : '已审批'
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: newStatus } : item); return r })
+      message.success(newStatus === '已审批' ? '终审已通过' : '一审通过，等待总监理工程师终审')
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)
@@ -442,11 +442,12 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
 
       <ReviewModal
         open={isReviewModalVisible}
-        title="发起审批"
+        title="审批"
         onClose={handleCancel}
         onSubmit={handleReviewSubmit}
         reviewerOptions={APPROVAL_CHAINS.PROJECT.reviewerOptions}
         okText="提交审批"
+        currentUser={currentUser.name}
       />
     </div>
   )

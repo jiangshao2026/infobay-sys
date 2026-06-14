@@ -2,6 +2,7 @@ import { Card, Table, Button, Space, Input, Select, DatePicker, Modal, Form, mes
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
+import { usePersistedState } from '../../hooks/usePersistedState'
 import initialData from '../../data/costAnalyses'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import type { CostAnalysisItem, CCAnalysisStatus, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
@@ -29,8 +30,8 @@ const analysisStatusColor = (status: string): string => {
 interface AnalysisPageProps {}
 
 const AnalysisPanel: React.FC<AnalysisPageProps> = () => {
-  const [list, setList] = useState<CostAnalysisItem[]>(initialData)
-const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
+  const [list, setList] = usePersistedState<CostAnalysisItem[]>('cost-analysis', initialData)
+const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('costControl-analysisPage-approval', {})
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)

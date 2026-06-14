@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { usePersistedState } from '../../hooks/usePersistedState'
 import {
   Card,
   Table,
@@ -182,8 +183,8 @@ const STATUS_COLORS: Record<StartupItem['status'], string> = {
 }
 
 function StartupPage() {
-  const [data, setData] = useState<StartupItem[]>(initialData)
-  const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
+  const [data, setData] = usePersistedState<StartupItem[]>('project-startup', initialData)
+  const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('projectManagement-startupPage-approval', {})
   const [keyword, setKeyword] = useState('')
   const [statusFilter, setStatusFilter] = useState<string | undefined>()
 
@@ -297,7 +298,7 @@ function StartupPage() {
   }
 
   const handleStartReview = (record: StartupItem) => {
-    if (record.status === '审批中' || record.status === '已审批') {
+    if (record.status === '已审批') {
       message.warning('当前状态无需再次发起审批')
       return
     }

@@ -2,6 +2,8 @@ import { Card, Table, Button, Space, Input, Select, DatePicker, Modal, Form, mes
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
+import { usePersistedState } from '../../hooks/usePersistedState'
+import { useUser } from '../../context/UserContext'
 import initialData from '../../data/acceptanceChecks'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import type { AcceptanceCheckItem, ACCheckType, ACCheckStatus, ACResult, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
@@ -49,8 +51,9 @@ const statusOptions: ACCheckStatus[] = ['待安排', '待验收', '进行中', '
 const resultOptions: ACResult[] = ['合格', '不合格', '有条件合格', '待复查']
 
 const CheckPanel: React.FC = () => {
-  const [list, setList] = useState<AcceptanceCheckItem[]>(initialData)
-const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
+  const [list, setList] = usePersistedState<ACCheckItem[]>('accept-check', initialData)
+  const { currentUser } = useUser()
+const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('acceptanceFiling-checkPage-approval', {})
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -165,7 +168,7 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
           <Button type="link" icon={<EyeOutlined />} size="small" onClick={() => handleView(record)}>查看</Button>
           <Button type="link" icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)}>编辑</Button>
           {record.status === '待验收' && (
-            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>发起审批</Button>
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>{record.status === '审批中' ? '审批' : '发起审批'}</Button>
           )}
           <Popconfirm
             title="确定删除此验收检查？"
@@ -300,6 +303,8 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
     const key = currentItem.key
     const existingRecords = approvalMap[key] || []
     const nextLevel = existingRecords.length + 1
+    const chain = APPROVAL_CHAINS.PROJECT
+    const isLast = nextLevel >= chain.levels.length
     const newRecord: ApprovalRecord = {
       key: `${key}-${nextLevel}`,
       code: `${currentItem.code}-R${nextLevel}`,
@@ -316,7 +321,7 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
       message.success('已驳回')
     } else {
       setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '已完成' as ACCheckStatus } : item); return r })
-      message.success('审批已提交')
+      message.success(isLast ? '审批已通过' : '审批已提交至下一级')
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)
@@ -470,6 +475,8 @@ const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>
         onSubmit={handleReviewSubmit}
         reviewerOptions={APPROVAL_CHAINS.PROJECT.reviewerOptions}
         okText="提交审批"
+      
+        currentUser={currentUser.name}
       />
     </div>
   )

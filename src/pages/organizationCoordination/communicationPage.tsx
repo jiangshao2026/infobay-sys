@@ -8,6 +8,7 @@ import type { CommunicationItem, OCComType, OCComStatus, DocumentAttachment } fr
 import { DetailModal, descItem, descText, CompactTableCssOnly } from '../../components/DetailModal'
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
 
+import { usePersistedState } from '../../hooks/usePersistedState'
 const { Option } = Select
 const { TextArea } = Input
 
@@ -27,7 +28,7 @@ const comStatusColor = (status: string): string => {
 }
 
 const CommunicationPanel: React.FC = () => {
-  const [list, setList] = useState<CommunicationItem[]>(initialData)
+  const [list, setList] = usePersistedState<OrgCommItem[]>('org-comm', initialData)
 const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
