@@ -1,6 +1,6 @@
 import { Card, Table, Button, Tag, Input, Select, DatePicker, Modal, Form, message, Space } from 'antd'
 import { PlusOutlined, SearchOutlined, EyeOutlined, WalletOutlined } from '@ant-design/icons'
-import { useState, useMemo } from 'react'
+import {  useState, useMemo, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 
 import type { PaymentItem, PaymentStatus, PaymentSearchParams } from '../../types/projectManagement'
@@ -28,7 +28,7 @@ const generateInvoiceCode = (): string => {
 
 function SupervisionPayment() {
   const [paymentList, setPaymentList] = useState<PaymentItem[]>(initialPaymentData)
-  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
+const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
   const [currentPayment, setCurrentPayment] = useState<PaymentItem | null>(null)
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [form] = Form.useForm()
@@ -72,7 +72,10 @@ function SupervisionPayment() {
         status: '待收款',
         description: values.description,
       }
-      setPaymentList(prev => [newPayment, ...prev])
+      setPaymentList(prev => {
+        const next = [newPayment, ...prev]
+        return next
+      })
       setIsModalVisible(false)
       form.resetFields()
       message.success('支付申请已提交（状态：待收款）')
@@ -91,13 +94,14 @@ function SupervisionPayment() {
       okText: '确认',
       cancelText: '取消',
       onOk: () => {
-        setPaymentList(prev =>
-          prev.map(item =>
+        setPaymentList(prev => {
+          const next = prev.map(item =>
             item.key === record.key
               ? { ...item, status: '已收款' as PaymentStatus, payDate: dayjs().format('YYYY-MM-DD') }
               : item
           )
-        )
+          return next
+        })
         message.success('收款确认成功')
       },
     })
@@ -122,7 +126,7 @@ function SupervisionPayment() {
       }
     }
 
-    const filtered = initialPaymentData.filter(item => {
+    const filtered = paymentList.filter(item => {
       let match = true
       if (values.keyword) {
         const kw = values.keyword.toLowerCase()
@@ -143,7 +147,7 @@ function SupervisionPayment() {
 
   const handleReset = () => {
     searchForm.resetFields()
-    setPaymentList(initialPaymentData)
+    setPaymentList([...paymentList])
   }
 
   const detailItems = useMemo(() => {

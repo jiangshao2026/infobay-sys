@@ -1,6 +1,6 @@
 import { Card, Table, Button, Tag, Input, Select, DatePicker, Modal, Form, message, Space } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, EyeOutlined, UserOutlined } from '@ant-design/icons'
-import { useState } from 'react'
+import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import {
   DetailModal,
@@ -23,7 +23,7 @@ const ASSIGNEE_OPTIONS = ['韦江腾', '李文海', '黄志强', '滕海燕', '�
 
 function Allocation() {
   const [allocationList, setAllocationList] = useState<AllocationItem[]>(initialAllocationData)
-  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
+const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
   const [currentAllocation, setCurrentAllocation] = useState<AllocationItem | null>(null)
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
@@ -32,7 +32,7 @@ function Allocation() {
   const [searchForm] = Form.useForm()
 
   const handleSearch = (values: AllocationSearchParams) => {
-    const filtered = initialAllocationData.filter(item => {
+    const filtered = allocationList.filter(item => {
       let match: boolean = true
       if (values.keyword) {
         const kw = values.keyword.toLowerCase()
@@ -60,7 +60,7 @@ function Allocation() {
 
   const handleReset = () => {
     searchForm.resetFields()
-    setAllocationList(initialAllocationData)
+    setAllocationList([...allocationList])
   }
 
   const handleView = (record: AllocationItem) => {
@@ -215,7 +215,10 @@ function Allocation() {
         priority: values.priority,
         description: values.description,
       }
-      setAllocationList(prev => [newAllocation, ...prev])
+      setAllocationList(prev => {
+        const r = [newAllocation, ...prev]
+        return r
+      })
       setIsAddModalVisible(false)
       addForm.resetFields()
       message.success('任务分配成功')
@@ -232,7 +235,8 @@ function Allocation() {
           message.error(dateCheck.message || '日期校验失败')
           return
         }
-        setAllocationList(prev => prev.map(item =>
+        setAllocationList(prev => {
+          const r = prev.map(item =>
           item.key === currentAllocation.key ? {
             ...item,
             code: values.code,
@@ -245,7 +249,9 @@ function Allocation() {
             endDate: endDateStr,
             description: values.description,
           } : item
-        ))
+          )
+          return r
+        })
         setIsEditModalVisible(false)
         editForm.resetFields()
         setCurrentAllocation(null)

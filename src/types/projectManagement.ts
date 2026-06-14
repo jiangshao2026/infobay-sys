@@ -777,6 +777,7 @@ export interface SafetyCheckItem {
   level: SFLevel
   reviewer: string
   status: SFCheckStatus
+  comments?: string
   attachments: DocumentAttachment[]
 }
 

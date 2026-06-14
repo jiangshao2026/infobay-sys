@@ -1,6 +1,6 @@
 import { Card, Table, Button, Space, Input, Select, Form, message, Tag } from 'antd'
 import { SearchOutlined, EyeOutlined, CheckCircleOutlined } from '@ant-design/icons'
-import { useState } from 'react'
+import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import initialData from '../../data/changeRequests'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
@@ -72,8 +72,8 @@ const isPendingStatus = (status: string): boolean => {
 interface ReviewPageProps {}
 
 const ReviewPanel: React.FC<ReviewPageProps> = () => {
-  const [list, setList] = useState<ChangeRequestItem[]>(initialData.filter(item => isPendingStatus(item.status)))
-  const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
+  const [list, setList] = usePersistedState<ChangeRequestItem[]>('change-review-list', initialData.filter(item => isPendingStatus(item.status)))
+const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
   const [isReviewModalVisible, setIsReviewModalVisible] = useState(false)
   const [currentItem, setCurrentItem] = useState<ChangeRequestItem | null>(null)
@@ -205,7 +205,7 @@ const ReviewPanel: React.FC<ReviewPageProps> = () => {
 
   const handleSearch = () => {
     searchForm.validateFields().then(values => {
-      let filtered = initialData.filter(item => isPendingStatus(item.status)).filter(item => {
+      let filtered = list.filter(item => isPendingStatus(item.status)).filter(item => {
         let match = true
         if (values.keyword) {
           const kw = values.keyword.toLowerCase()
@@ -230,7 +230,7 @@ const ReviewPanel: React.FC<ReviewPageProps> = () => {
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList(initialData.filter(item => isPendingStatus(item.status)))
+    setList([...list])
   }
 
   const handleCancel = () => {

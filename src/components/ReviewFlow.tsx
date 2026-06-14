@@ -733,7 +733,7 @@ export function printDocument(kind: DocumentKind, ctx: DocumentContext) {
   w.document.close()
   w.focus()
   setTimeout(() => {
-    try { w.print() } catch (e) { console.warn(e) }
+    try { w.print() } catch (e) { /* 打印功能在部分浏览器可能受限 */ }
   }, 400)
 }
 

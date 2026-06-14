@@ -259,7 +259,7 @@ function Layout() {
   const getInitialOpenKey = () => {
     const p = location.pathname
     const top = '/' + p.split('/')[1]
-    if (['/project', '/quality', '/schedule', '/cost', '/change', '/safety', '/information', '/organization', '/acceptance', '/contract', '/knowledge', '/supervisor'].includes(top)) {
+    if (['/project', '/quality', '/schedule', '/cost', '/change', '/safety', '/information', '/organization', '/acceptance', '/contract', '/knowledge', '/supervisor', '/system'].includes(top)) {
       return top
     }
     return ''
@@ -401,27 +401,44 @@ function Layout() {
           title="用户登录"
           open={loginModalVisible}
           onCancel={() => setLoginModalVisible(false)}
-          onOk={() => {
-            loginForm.validateFields().then((values) => {
+          onOk={async () => {
+            try {
+              const values = await loginForm.validateFields()
               const result = login(values.username, values.password)
               if (result.ok) {
                 message.success('登录成功')
                 setLoginModalVisible(false)
                 loginForm.resetFields()
-                // 跳转到工作台
                 navigate('/dashboard')
-                // 收起所有已展开的左侧菜单
                 setOpenKeys([])
               } else {
                 message.error(result.message || '登录失败')
               }
-            }).catch(() => {})
+            } catch (_) {}
           }}
           okText="登录"
           cancelText="取消"
           width={420}
         >
-          <Form form={loginForm} layout="vertical">
+          <Form
+            form={loginForm}
+            layout="vertical"
+            onFinish={async () => {
+              try {
+                const values = await loginForm.validateFields()
+                const result = login(values.username, values.password)
+                if (result.ok) {
+                  message.success('登录成功')
+                  setLoginModalVisible(false)
+                  loginForm.resetFields()
+                  navigate('/dashboard')
+                  setOpenKeys([])
+                } else {
+                  message.error(result.message || '登录失败')
+                }
+              } catch (_) {}
+            }}
+          >
             <Form.Item
               label="用户名（姓名）"
               name="username"
@@ -434,7 +451,7 @@ function Layout() {
               name="password"
               rules={[{ required: true, message: '请输入密码' }]}
             >
-              <Input.Password placeholder="请输入密码" />
+              <Input.Password placeholder="请输入密码" onPressEnter={() => loginForm.submit()} />
             </Form.Item>
           </Form>
         </Modal>

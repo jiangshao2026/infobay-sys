@@ -1,6 +1,6 @@
 import { Card, Table, Button, Space, Input, Select, DatePicker, Modal, Form, message, Popconfirm, Tag, Divider } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, CheckCircleOutlined, DownloadOutlined, PrinterOutlined } from '@ant-design/icons'
-import { useState } from 'react'
+import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import initialData from '../../data/infoDocuments'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
@@ -19,7 +19,7 @@ const STATUS_OPTIONS: IMDocStatus[] = ['待审批', '审批中', '已发布', '�
 
 const DocumentPanel: React.FC = () => {
   const [list, setList] = useState<InfoDocumentItem[]>(initialData)
-  const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
+const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -161,7 +161,7 @@ const DocumentPanel: React.FC = () => {
   }
 
   const handleDelete = (key: string) => {
-    setList(prev => prev.filter(item => item.key !== key))
+    setList(prev => { const r = prev.filter(item => item.key !== key); return r })
     message.success('删除成功')
   }
 
@@ -201,7 +201,7 @@ const DocumentPanel: React.FC = () => {
   const handleAddOk = () => {
     addForm.validateFields().then(values => {
       const newItem: InfoDocumentItem = normalize(values, Date.now().toString(), [])
-      setList(prev => [newItem, ...prev])
+      setList(prev => { const r = [newItem, ...prev]; return r })
       setIsAddModalVisible(false)
       addForm.resetFields()
       message.success('新增成功')
@@ -211,9 +211,9 @@ const DocumentPanel: React.FC = () => {
   const handleEditOk = () => {
     editForm.validateFields().then(values => {
       if (currentItem) {
-        setList(prev => prev.map(item =>
+        setList(prev => { const r = prev.map(item =>
           item.key === currentItem.key ? normalize(values, currentItem.key, currentItem.attachments, currentItem.currentLevel) : item
-        ))
+        ); return r })
         setIsEditModalVisible(false)
         editForm.resetFields()
         setCurrentItem(null)
@@ -224,7 +224,7 @@ const DocumentPanel: React.FC = () => {
 
   const handleSearch = () => {
     searchForm.validateFields().then(values => {
-      let filtered = initialData.filter(item => {
+      let filtered = list.filter(item => {
         let match = true
         if (values.keyword) {
           const kw = values.keyword.toLowerCase()
@@ -255,7 +255,7 @@ const DocumentPanel: React.FC = () => {
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList(initialData)
+    setList([...list])
   }
 
   const handleCancel = () => {
@@ -288,14 +288,14 @@ const DocumentPanel: React.FC = () => {
     setApprovalMap(prev => ({ ...prev, [key]: updatedRecords }))
 
     if (payload.status === '驳回') {
-      setList(prev => prev.map(item => item.key === key ? { ...item, status: '已驳回' as IMDocStatus, currentLevel: nextLevel } : item))
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '已驳回' as IMDocStatus, currentLevel: nextLevel } : item); return r })
       message.success('已驳回')
     } else {
       // 通过：若达到 2 级终态 -> 已发布；否则 -> 审批中
       const isFinal = nextLevel >= CHAIN.levels.length
-      setList(prev => prev.map(item => item.key === key
+      setList(prev => { const r = prev.map(item => item.key === key
         ? { ...item, status: (isFinal ? '已发布' : '审批中') as IMDocStatus, currentLevel: nextLevel }
-        : item))
+        : item); return r })
       message.success(isFinal ? '审批完成，文档已发布' : '已通过一级审批，进入下一级')
     }
     setIsReviewModalVisible(false)

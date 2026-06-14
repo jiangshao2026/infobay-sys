@@ -1,6 +1,6 @@
 import { Card, Table, Button, Space, Input, Select, DatePicker, Modal, Form, message, Tag } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons'
-import { useState } from 'react'
+import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import initialData from '../../data/meetings'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
@@ -50,6 +50,7 @@ const convertLegacyType = (t: string): OrgMeetingType => {
     '专题会议': '专题会议',
     '技术交底': '技术交底',
     '协调会议': '协调会议',
+    '启动会': '启动会',
   }
   return map[t] || '监理例会'
 }
@@ -68,8 +69,8 @@ const normalizeLegacyList = (items: MeetingItem[]): OrgMeetingItem[] =>
   }))
 
 function OrgMeeting() {
-  const [list, setList] = useState<OrgMeetingItem[]>(normalizeLegacyList(initialData))
-  const [isAddModalVisible, setIsAddModalVisible] = useState(false)
+  const [list, setList] = usePersistedState<OrgMeetingItem[]>('org-meeting-list', normalizeLegacyList(initialData))
+const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
   const [currentItem, setCurrentItem] = useState<OrgMeetingItem | null>(null)
@@ -203,7 +204,7 @@ function OrgMeeting() {
       cancelText: '取消',
       okButtonProps: { danger: true },
       onOk: () => {
-        setList(prev => prev.filter(item => item.key !== key))
+        setList(prev => { const r = prev.filter(item => item.key !== key); return r })
         message.success('删除成功')
       },
     })
@@ -234,7 +235,7 @@ function OrgMeeting() {
   const handleAddOk = () => {
     addForm.validateFields().then(values => {
       const newItem: OrgMeetingItem = normalize(values, Date.now().toString())
-      setList(prev => [newItem, ...prev])
+      setList(prev => { const r = [newItem, ...prev]; return r })
       setIsAddModalVisible(false)
       addForm.resetFields()
       message.success('新增成功')
@@ -244,9 +245,9 @@ function OrgMeeting() {
   const handleEditOk = () => {
     editForm.validateFields().then(values => {
       if (currentItem) {
-        setList(prev => prev.map(item =>
+        setList(prev => { const r = prev.map(item =>
           item.key === currentItem.key ? normalize(values, currentItem.key) : item
-        ))
+        ); return r })
         setIsEditModalVisible(false)
         editForm.resetFields()
         setCurrentItem(null)
@@ -257,7 +258,7 @@ function OrgMeeting() {
 
   const handleSearch = () => {
     searchForm.validateFields().then(values => {
-      let filtered = normalizeLegacyList(initialData).filter(item => {
+      let filtered = list.filter(item => {
         let match = true
         if (values.keyword) {
           const kw = values.keyword.toLowerCase()
@@ -285,7 +286,7 @@ function OrgMeeting() {
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList(normalizeLegacyList(initialData))
+    setList([...list])
   }
 
   const handleCancel = () => {

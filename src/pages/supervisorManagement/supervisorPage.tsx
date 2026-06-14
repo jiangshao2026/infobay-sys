@@ -1,6 +1,6 @@
 import { Card, Table, Button, Space, Input, Select, DatePicker, Modal, Form, message, Popconfirm, Tag, Divider } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons'
-import { useState } from 'react'
+import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import initialData from '../../data/supervisors'
 import type { SupervisorItem, SPGender, SPEducation, SPTitle, SPPosition, SPStatus, SPCertType, SPCertRef, DocumentAttachment } from '../../types/projectManagement'
@@ -34,7 +34,7 @@ const certTypeOptions: SPCertType[] = ['信息系统监理师', '信息系统项
 
 const SupervisorPanel: React.FC = () => {
   const [list, setList] = useState<SupervisorItem[]>(initialData)
-  const [isAddModalVisible, setIsAddModalVisible] = useState(false)
+const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
   const [currentItem, setCurrentItem] = useState<SupervisorItem | null>(null)
@@ -191,7 +191,7 @@ const SupervisorPanel: React.FC = () => {
   }
 
   const handleDelete = (key: string) => {
-    setList(prev => prev.filter(item => item.key !== key))
+    setList(prev => { const r = prev.filter(item => item.key !== key); return r })
     message.success('删除成功')
   }
 
@@ -224,7 +224,7 @@ const SupervisorPanel: React.FC = () => {
   const handleAddOk = () => {
     addForm.validateFields().then(values => {
       const newItem: SupervisorItem = normalize(values, Date.now().toString(), addCertList)
-      setList(prev => [newItem, ...prev])
+      setList(prev => { const r = [newItem, ...prev]; return r })
       setIsAddModalVisible(false)
       addForm.resetFields()
       setAddCertList([])
@@ -235,9 +235,9 @@ const SupervisorPanel: React.FC = () => {
   const handleEditOk = () => {
     editForm.validateFields().then(values => {
       if (currentItem) {
-        setList(prev => prev.map(item =>
+        setList(prev => { const r = prev.map(item =>
           item.key === currentItem.key ? normalize(values, currentItem.key, editCertList) : item
-        ))
+        ); return r })
         setIsEditModalVisible(false)
         editForm.resetFields()
         setEditCertList([])
@@ -249,7 +249,7 @@ const SupervisorPanel: React.FC = () => {
 
   const handleSearch = () => {
     searchForm.validateFields().then(values => {
-      let filtered = initialData.filter(item => {
+      let filtered = list.filter(item => {
         let match = true
         if (values.keyword) {
           const kw = values.keyword.toLowerCase()
@@ -280,7 +280,7 @@ const SupervisorPanel: React.FC = () => {
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList(initialData)
+    setList([...list])
   }
 
   const handleCancel = () => {

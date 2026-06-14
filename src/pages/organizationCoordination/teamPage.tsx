@@ -1,5 +1,5 @@
 import { Card, Table, Button, Space, Modal, Form, Input, Select, message, Popconfirm, Tag, Descriptions, Row, Col, Divider, Empty } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, TeamOutlined, UserAddOutlined } from '@ant-design/icons'
+import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, TeamOutlined, UserAddOutlined, SearchOutlined } from '@ant-design/icons'
 import { useState } from 'react'
 import initialData from '../../data/projectRelations'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
@@ -112,6 +112,32 @@ const ProjectRelationPanel: React.FC = () => {
   const [isAddVisible, setIsAddVisible] = useState(false)
   const [addForm] = Form.useForm()
 
+  const [searchForm] = Form.useForm()
+  const [searchParams, setSearchParams] = useState<{ keyword?: string; projectCode?: string; status?: string }>({})
+
+  const filteredList = list.filter(item => {
+    if (searchParams.keyword) {
+      const kw = searchParams.keyword.toLowerCase()
+      if (!item.code.toLowerCase().includes(kw) && !getProjectNameByCode(item.projectCode).toLowerCase().includes(kw)) {
+        return false
+      }
+    }
+    if (searchParams.projectCode && item.projectCode !== searchParams.projectCode) return false
+    if (searchParams.status && item.status !== searchParams.status) return false
+    return true
+  })
+
+  const handleSearch = () => {
+    searchForm.validateFields().then(values => {
+      setSearchParams({ keyword: values.keyword, projectCode: values.projectCode, status: values.status })
+    }).catch(() => {})
+  }
+
+  const handleReset = () => {
+    searchForm.resetFields()
+    setSearchParams({})
+  }
+
   const projectOptions = initialProjectData.map(p => ({
     key: p.code,
     label: `${p.code} - ${p.name}`,
@@ -202,6 +228,8 @@ const ProjectRelationPanel: React.FC = () => {
           <Button type="link" icon={<UserAddOutlined />} size="small" onClick={() => handleMaintain(record, '业主方')}>维护业主方</Button>
           <Button type="link" icon={<UserAddOutlined />} size="small" onClick={() => handleMaintain(record, '承建方')}>维护承建方</Button>
           <Button type="link" icon={<UserAddOutlined />} size="small" onClick={() => handleMaintain(record, '监理方')}>维护监理方</Button>
+          <Button type="link" icon={<UserAddOutlined />} size="small" onClick={() => handleMaintain(record, '验收测评方')}>维护验收方</Button>
+          <Button type="link" icon={<UserAddOutlined />} size="small" onClick={() => handleMaintain(record, '安全测评方')}>维护安全方</Button>
           <Popconfirm
             title="确定删除此项目的关系人记录？"
             onConfirm={() => handleDelete(record.key)}
@@ -335,13 +363,40 @@ const ProjectRelationPanel: React.FC = () => {
       </div>
 
       <Card>
+        <Form form={searchForm} layout="inline" style={{ marginBottom: 16 }}>
+          <Form.Item name="projectCode">
+            <Select placeholder="所属项目" style={{ width: 220 }} allowClear showSearch optionFilterProp="children">
+              {projectOptions.map(o => <Option key={o.key} value={o.value}>{o.label}</Option>)}
+            </Select>
+          </Form.Item>
+          <Form.Item name="status">
+            <Select placeholder="状态" style={{ width: 120 }} allowClear>
+              <Option value="已完善">已完善</Option>
+              <Option value="待完善">待完善</Option>
+              <Option value="新建">新建</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="keyword">
+            <Input placeholder="项目编号/名称" prefix={<SearchOutlined />} style={{ width: 200 }} />
+          </Form.Item>
+          <Form.Item>
+            <Button type="primary" onClick={handleSearch}>查询</Button>
+          </Form.Item>
+          <Form.Item>
+            <Button onClick={handleReset}>重置</Button>
+          </Form.Item>
+        </Form>
         <Table
           columns={columns}
-          dataSource={list}
+          dataSource={filteredList}
           size="middle"
           pagination={{ pageSize: 8, size: 'small' }}
           scroll={{ x: 1800 }}
           rowKey="key"
+          onRow={(record: ProjectRelationItem) => ({
+            onClick: () => handleView(record),
+            style: { cursor: 'pointer' },
+          })}
         />
       </Card>
 

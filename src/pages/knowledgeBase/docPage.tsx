@@ -1,6 +1,6 @@
 import { Card, Table, Button, Space, Input, Select, DatePicker, Modal, Form, message, Popconfirm, Tag } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons'
-import { useState, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import dayjs from 'dayjs'
 import initialData from '../../data/knowledgeDocs'
 import type { KnowledgeDocItem, KDCategory, DocumentAttachment, KDDocReview } from '../../types/projectManagement'
@@ -24,7 +24,7 @@ const DocPanel: React.FC<DocPanelProps> = ({ defaultCategory }) => {
   }, [defaultCategory])
 
   const [list, setList] = useState<KnowledgeDocItem[]>(filteredSource)
-  const [isAddModalVisible, setIsAddModalVisible] = useState(false)
+const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
   const [currentItem, setCurrentItem] = useState<KnowledgeDocItem | null>(null)
@@ -177,7 +177,7 @@ const DocPanel: React.FC<DocPanelProps> = ({ defaultCategory }) => {
   }
 
   const handleDelete = (key: string) => {
-    setList(prev => prev.filter(item => item.key !== key))
+    setList(prev => { const r = prev.filter(item => item.key !== key); return r })
     message.success('删除成功')
   }
 
@@ -206,7 +206,7 @@ const DocPanel: React.FC<DocPanelProps> = ({ defaultCategory }) => {
   const handleAddOk = () => {
     addForm.validateFields().then(values => {
       const newItem: KnowledgeDocItem = normalize(values, Date.now().toString(), [], 0)
-      setList(prev => [newItem, ...prev])
+      setList(prev => { const r = [newItem, ...prev]; return r })
       setIsAddModalVisible(false)
       addForm.resetFields()
       message.success('新增成功')
@@ -216,9 +216,9 @@ const DocPanel: React.FC<DocPanelProps> = ({ defaultCategory }) => {
   const handleEditOk = () => {
     editForm.validateFields().then(values => {
       if (currentItem) {
-        setList(prev => prev.map(item =>
+        setList(prev => { const r = prev.map(item =>
           item.key === currentItem.key ? normalize(values, currentItem.key, currentItem.attachments, currentItem.views, currentItem.reviews || []) : item
-        ))
+        ); return r })
         setIsEditModalVisible(false)
         editForm.resetFields()
         setCurrentItem(null)
@@ -229,7 +229,7 @@ const DocPanel: React.FC<DocPanelProps> = ({ defaultCategory }) => {
 
   const handleSearch = () => {
     searchForm.validateFields().then(values => {
-      let filtered = filteredSource.filter(item => {
+      let filtered = list.filter(item => {
         let match = true
         if (values.keyword) {
           const kw = values.keyword.toLowerCase()
@@ -253,7 +253,7 @@ const DocPanel: React.FC<DocPanelProps> = ({ defaultCategory }) => {
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList(filteredSource)
+    setList([...list])
   }
 
   const handleCancel = () => {
@@ -302,7 +302,7 @@ const DocPanel: React.FC<DocPanelProps> = ({ defaultCategory }) => {
     }
 
     const updatedItem: KnowledgeDocItem = { ...approvalTarget, status: newStatus as '草稿' | '待审批' | '已发布' }
-    setList(prev => prev.map(item => (item.key === approvalTarget.key ? updatedItem : item)))
+    setList(prev => { const r = prev.map(item => (item.key === approvalTarget.key ? updatedItem : item)); return r })
     setIsApprovalModalVisible(false)
     message.success(`审批已提交，状态：${newStatus}`)
   }
@@ -324,9 +324,9 @@ const DocPanel: React.FC<DocPanelProps> = ({ defaultCategory }) => {
         }
         const updatedReviews = [...(reviewTarget.reviews || []), newReview]
         const updatedTarget = { ...reviewTarget, reviews: updatedReviews }
-        setList(prev => prev.map(item =>
+        setList(prev => { const r = prev.map(item =>
           item.key === reviewTarget.key ? updatedTarget : item
-        ))
+        ); return r })
         // 同时同步 currentItem，以便在查看/编辑弹窗中也能看到最新点评
         if (currentItem && currentItem.key === reviewTarget.key) {
           setCurrentItem(updatedTarget)

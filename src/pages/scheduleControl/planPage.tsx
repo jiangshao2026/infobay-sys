@@ -1,6 +1,6 @@
 import { Card, Table, Button, Space, Input, Select, DatePicker, Modal, Form, message, Popconfirm, Tag } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, CheckCircleOutlined } from '@ant-design/icons'
-import { useState } from 'react'
+import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import initialData from '../../data/schedulePlans'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
@@ -29,7 +29,7 @@ interface PlanPageProps {}
 
 const PlanPanel: React.FC<PlanPageProps> = () => {
   const [list, setList] = useState<SchedulePlanItem[]>(initialData)
-  const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
+const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -165,7 +165,7 @@ const PlanPanel: React.FC<PlanPageProps> = () => {
   }
 
   const handleDelete = (key: string) => {
-    setList(prev => prev.filter(item => item.key !== key))
+    setList(prev => { const r = prev.filter(item => item.key !== key); return r })
     message.success('删除成功')
   }
 
@@ -196,7 +196,7 @@ const PlanPanel: React.FC<PlanPageProps> = () => {
   const handleAddOk = () => {
     addForm.validateFields().then(values => {
       const newItem: SchedulePlanItem = normalize(values, Date.now().toString(), [])
-      setList(prev => [newItem, ...prev])
+      setList(prev => { const r = [newItem, ...prev]; return r })
       setIsAddModalVisible(false)
       addForm.resetFields()
       message.success('新增成功')
@@ -206,9 +206,9 @@ const PlanPanel: React.FC<PlanPageProps> = () => {
   const handleEditOk = () => {
     editForm.validateFields().then(values => {
       if (currentItem) {
-        setList(prev => prev.map(item =>
+        setList(prev => { const r = prev.map(item =>
           item.key === currentItem.key ? normalize(values, currentItem.key, currentItem.attachments) : item
-        ))
+        ); return r })
         setIsEditModalVisible(false)
         editForm.resetFields()
         setCurrentItem(null)
@@ -219,7 +219,7 @@ const PlanPanel: React.FC<PlanPageProps> = () => {
 
   const handleSearch = () => {
     searchForm.validateFields().then(values => {
-      let filtered = initialData.filter(item => {
+      let filtered = list.filter(item => {
         let match = true
         if (values.keyword) {
           const kw = values.keyword.toLowerCase()
@@ -244,7 +244,7 @@ const PlanPanel: React.FC<PlanPageProps> = () => {
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList(initialData)
+    setList([...list])
   }
 
   const handleCancel = () => {
@@ -274,10 +274,10 @@ const PlanPanel: React.FC<PlanPageProps> = () => {
     setApprovalMap(prev => ({ ...prev, [key]: [...existingRecords, newRecord] }))
 
     if (payload.status === '驳回') {
-      setList(prev => prev.map(item => item.key === key ? { ...item, status: '已驳回' as SCPlanStatus } : item))
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '已驳回' as SCPlanStatus } : item); return r })
       message.success('已驳回')
     } else {
-      setList(prev => prev.map(item => item.key === key ? { ...item, status: '已审批' as SCPlanStatus } : item))
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '已审批' as SCPlanStatus } : item); return r })
       message.success('审批已提交')
     }
     setIsReviewModalVisible(false)

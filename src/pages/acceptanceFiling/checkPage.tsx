@@ -1,6 +1,6 @@
 import { Card, Table, Button, Space, Input, Select, DatePicker, Modal, Form, message, Popconfirm, Tag } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, CheckCircleOutlined } from '@ant-design/icons'
-import { useState } from 'react'
+import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import initialData from '../../data/acceptanceChecks'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
@@ -50,7 +50,7 @@ const resultOptions: ACResult[] = ['合格', '不合格', '有条件合格', '�
 
 const CheckPanel: React.FC = () => {
   const [list, setList] = useState<AcceptanceCheckItem[]>(initialData)
-  const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
+const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -198,7 +198,7 @@ const CheckPanel: React.FC = () => {
   }
 
   const handleDelete = (key: string) => {
-    setList(prev => prev.filter(item => item.key !== key))
+    setList(prev => { const r = prev.filter(item => item.key !== key); return r })
     message.success('删除成功')
   }
 
@@ -231,7 +231,7 @@ const CheckPanel: React.FC = () => {
   const handleAddOk = () => {
     addForm.validateFields().then(values => {
       const newItem: AcceptanceCheckItem = normalize(values, Date.now().toString(), [])
-      setList(prev => [newItem, ...prev])
+      setList(prev => { const r = [newItem, ...prev]; return r })
       setIsAddModalVisible(false)
       addForm.resetFields()
       message.success('新增成功')
@@ -241,9 +241,9 @@ const CheckPanel: React.FC = () => {
   const handleEditOk = () => {
     editForm.validateFields().then(values => {
       if (currentItem) {
-        setList(prev => prev.map(item =>
+        setList(prev => { const r = prev.map(item =>
           item.key === currentItem.key ? normalize(values, currentItem.key, currentItem.attachments) : item
-        ))
+        ); return r })
         setIsEditModalVisible(false)
         editForm.resetFields()
         setCurrentItem(null)
@@ -254,7 +254,7 @@ const CheckPanel: React.FC = () => {
 
   const handleSearch = () => {
     searchForm.validateFields().then(values => {
-      let filtered = initialData.filter(item => {
+      let filtered = list.filter(item => {
         let match = true
         if (values.keyword) {
           const kw = values.keyword.toLowerCase()
@@ -282,7 +282,7 @@ const CheckPanel: React.FC = () => {
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList(initialData)
+    setList([...list])
   }
 
   const handleCancel = () => {
@@ -312,10 +312,10 @@ const CheckPanel: React.FC = () => {
     setApprovalMap(prev => ({ ...prev, [key]: [...existingRecords, newRecord] }))
 
     if (payload.status === '驳回') {
-      setList(prev => prev.map(item => item.key === key ? { ...item, status: '已驳回' as ACCheckStatus } : item))
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '已驳回' as ACCheckStatus } : item); return r })
       message.success('已驳回')
     } else {
-      setList(prev => prev.map(item => item.key === key ? { ...item, status: '已完成' as ACCheckStatus } : item))
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '已完成' as ACCheckStatus } : item); return r })
       message.success('审批已提交')
     }
     setIsReviewModalVisible(false)

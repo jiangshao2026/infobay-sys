@@ -1,6 +1,6 @@
 import { Card, Table, Button, Space, Input, Select, DatePicker, Modal, Form, message, Popconfirm, Tag } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, CheckCircleOutlined } from '@ant-design/icons'
-import { useState } from 'react'
+import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import initialData from '../../data/safetyIncidents'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
@@ -13,16 +13,25 @@ import { DocumentUploader, DocumentList } from '../../components/DocumentUploade
 const { Option } = Select
 const { TextArea } = Input
 
+const nextIncidentStatus: Record<string, SFIncidentStatus> = {
+  '待处理': '待审批',
+  '待审批': '处理中',
+  '处理中': '已处理',
+  '已处理': '已归档',
+}
+
 const incidentStatusColor = (status: string): string => {
   switch (status) {
     case '待处理':
       return 'gold'
+    case '待审批':
+      return 'orange'
     case '处理中':
       return 'blue'
     case '已处理':
       return 'green'
-    case '待审批':
-      return 'orange'
+    case '已驳回':
+      return 'volcano'
     case '已归档':
       return 'purple'
     default:
@@ -45,7 +54,7 @@ const incidentLevelColor = (level: string): string => {
 
 const IncidentPanel: React.FC = () => {
   const [list, setList] = useState<SafetyIncidentItem[]>(initialData)
-  const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
+const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -169,8 +178,8 @@ const IncidentPanel: React.FC = () => {
         <Space size="small" style={{ display: 'flex', flexWrap: 'wrap' }}>
           <Button type="link" icon={<EyeOutlined />} size="small" onClick={() => handleView(record)}>查看</Button>
           <Button type="link" icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)}>编辑</Button>
-          {record.status !== '已归档' && (
-            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>发起审批</Button>
+          {record.status !== '已归档' && record.status !== '已完成' && (
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>推进流程</Button>
           )}
           <Popconfirm
             title="确定删除此安全事故记录？"
@@ -201,7 +210,7 @@ const IncidentPanel: React.FC = () => {
   }
 
   const handleDelete = (key: string) => {
-    setList(prev => prev.filter(item => item.key !== key))
+    setList(prev => { const r = prev.filter(item => item.key !== key); return r })
     message.success('删除成功')
   }
 
@@ -236,7 +245,7 @@ const IncidentPanel: React.FC = () => {
   const handleAddOk = () => {
     addForm.validateFields().then(values => {
       const newItem: SafetyIncidentItem = normalize(values, Date.now().toString(), [])
-      setList(prev => [newItem, ...prev])
+      setList(prev => { const r = [newItem, ...prev]; return r })
       setIsAddModalVisible(false)
       addForm.resetFields()
       message.success('新增成功')
@@ -246,9 +255,9 @@ const IncidentPanel: React.FC = () => {
   const handleEditOk = () => {
     editForm.validateFields().then(values => {
       if (currentItem) {
-        setList(prev => prev.map(item =>
+        setList(prev => { const r = prev.map(item =>
           item.key === currentItem.key ? normalize(values, currentItem.key, currentItem.attachments) : item
-        ))
+        ); return r })
         setIsEditModalVisible(false)
         editForm.resetFields()
         setCurrentItem(null)
@@ -259,7 +268,7 @@ const IncidentPanel: React.FC = () => {
 
   const handleSearch = () => {
     searchForm.validateFields().then(values => {
-      let filtered = initialData.filter(item => {
+      let filtered = list.filter(item => {
         let match = true
         if (values.keyword) {
           const kw = values.keyword.toLowerCase()
@@ -287,7 +296,7 @@ const IncidentPanel: React.FC = () => {
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList(initialData)
+    setList([...list])
   }
 
   const handleCancel = () => {
@@ -317,11 +326,18 @@ const IncidentPanel: React.FC = () => {
     setApprovalMap(prev => ({ ...prev, [key]: [...existingRecords, newRecord] }))
 
     if (payload.status === '驳回') {
-      setList(prev => prev.map(item => item.key === key ? { ...item, status: '待审批' as SFIncidentStatus } : item))
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '已驳回' as SFIncidentStatus } : item); return r })
       message.success('已驳回')
     } else {
-      setList(prev => prev.map(item => item.key === key ? { ...item, status: '已归档' as SFIncidentStatus } : item))
-      message.success('审批已提交')
+      const nextStatus = nextIncidentStatus[currentItem.status] || '已归档' as SFIncidentStatus
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: nextStatus } : item); return r })
+      if (nextStatus === '已归档') {
+        message.success('事故已归档')
+      } else if (nextStatus === '已处理') {
+        message.success('事故已处理完毕')
+      } else {
+        message.success('审批已提交至下一阶段')
+      }
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)

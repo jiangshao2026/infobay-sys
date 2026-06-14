@@ -1,6 +1,6 @@
 import { Card, Table, Button, Space, Input, Select, DatePicker, Modal, Form, message, Popconfirm, Tag } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, CheckCircleOutlined } from '@ant-design/icons'
-import { useState } from 'react'
+import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import initialData from '../../data/safetyChecks'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
@@ -16,13 +16,20 @@ const checkStatusColor = (status: string): string => {
   switch (status) {
     case '待审批':
       return 'gold'
-    case '已通过':
-      return 'green'
     case '一审中':
       return 'blue'
+    case '已通过':
+      return 'green'
+    case '已驳回':
+      return 'volcano'
     default:
       return 'gray'
   }
+}
+
+const nextCheckStatus: Record<string, SFCheckStatus> = {
+  '待审批': '一审中',
+  '一审中': '已通过',
 }
 
 const riskLevelColor = (level: string): string => {
@@ -42,7 +49,7 @@ const riskLevelColor = (level: string): string => {
 
 const CheckPanel: React.FC = () => {
   const [list, setList] = useState<SafetyCheckItem[]>(initialData)
-  const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
+const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -156,7 +163,7 @@ const CheckPanel: React.FC = () => {
           <Button type="link" icon={<EyeOutlined />} size="small" onClick={() => handleView(record)}>查看</Button>
           <Button type="link" icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)}>编辑</Button>
           {record.status !== '已通过' && (
-            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>发起审批</Button>
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>推进审批</Button>
           )}
           <Popconfirm
             title="确定删除此安全检查记录？"
@@ -188,7 +195,7 @@ const CheckPanel: React.FC = () => {
   }
 
   const handleDelete = (key: string) => {
-    setList(prev => prev.filter(item => item.key !== key))
+    setList(prev => { const r = prev.filter(item => item.key !== key); return r })
     message.success('删除成功')
   }
 
@@ -220,7 +227,7 @@ const CheckPanel: React.FC = () => {
   const handleAddOk = () => {
     addForm.validateFields().then(values => {
       const newItem: SafetyCheckItem = normalize(values, Date.now().toString(), [])
-      setList(prev => [newItem, ...prev])
+      setList(prev => { const r = [newItem, ...prev]; return r })
       setIsAddModalVisible(false)
       addForm.resetFields()
       message.success('新增成功')
@@ -230,9 +237,9 @@ const CheckPanel: React.FC = () => {
   const handleEditOk = () => {
     editForm.validateFields().then(values => {
       if (currentItem) {
-        setList(prev => prev.map(item =>
+        setList(prev => { const r = prev.map(item =>
           item.key === currentItem.key ? normalize(values, currentItem.key, currentItem.attachments) : item
-        ))
+        ); return r })
         setIsEditModalVisible(false)
         editForm.resetFields()
         setCurrentItem(null)
@@ -243,7 +250,7 @@ const CheckPanel: React.FC = () => {
 
   const handleSearch = () => {
     searchForm.validateFields().then(values => {
-      let filtered = initialData.filter(item => {
+      let filtered = list.filter(item => {
         let match = true
         if (values.keyword) {
           const kw = values.keyword.toLowerCase()
@@ -274,7 +281,7 @@ const CheckPanel: React.FC = () => {
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList(initialData)
+    setList([...list])
   }
 
   const handleCancel = () => {
@@ -304,11 +311,12 @@ const CheckPanel: React.FC = () => {
     setApprovalMap(prev => ({ ...prev, [key]: [...existingRecords, newRecord] }))
 
     if (payload.status === '驳回') {
-      setList(prev => prev.map(item => item.key === key ? { ...item, status: '待审批' as SFCheckStatus } : item))
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '已驳回' as SFCheckStatus } : item); return r })
       message.success('已驳回')
     } else {
-      setList(prev => prev.map(item => item.key === key ? { ...item, status: '已通过' as SFCheckStatus } : item))
-      message.success('审批已提交')
+      const nextStatus = nextCheckStatus[currentItem.status] || '已通过' as SFCheckStatus
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: nextStatus } : item); return r })
+      message.success(nextStatus === '已通过' ? '审批已通过' : '审批已提交至下一级')
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)
@@ -363,11 +371,15 @@ const CheckPanel: React.FC = () => {
       <Form.Item name="issues" label="发现问题（每行一项）">
         <TextArea rows={3} placeholder="每行一项，例如：灭火器检查记录不完整" />
       </Form.Item>
+      <Form.Item name="comments" label="检查结论/备注">
+        <TextArea rows={2} placeholder="检查总体评价、整改建议等" />
+      </Form.Item>
       <Form.Item name="status" label="状态" rules={[{ required: true, message: '请选择状态' }]}>
         <Select placeholder="请选择状态">
           <Option value="待审批">待审批</Option>
           <Option value="一审中">一审中</Option>
           <Option value="已通过">已通过</Option>
+          <Option value="已驳回">已驳回</Option>
         </Select>
       </Form.Item>
       <Form.Item name="attachments" label="附件">
@@ -411,6 +423,7 @@ const CheckPanel: React.FC = () => {
               <Option value="待审批">待审批</Option>
               <Option value="一审中">一审中</Option>
               <Option value="已通过">已通过</Option>
+              <Option value="已驳回">已驳回</Option>
             </Select>
           </Form.Item>
           <Form.Item name="keyword">
@@ -460,6 +473,9 @@ const CheckPanel: React.FC = () => {
             descItem('状态', <Tag color={checkStatusColor(currentItem.status)}>{currentItem.status}</Tag>),
             currentItem.issues && currentItem.issues.length > 0
               ? descItem('发现问题', <ul style={{ margin: 0, paddingLeft: 20 }}>{currentItem.issues.map((m, i) => <li key={i}>{m}</li>)}</ul>)
+              : null,
+            currentItem.comments
+              ? descItem('检查结论/备注', descText(currentItem.comments))
               : null,
           ].filter(Boolean) as any[]
           items.push(descItem('附件列表', <DocumentList documents={currentItem.attachments || []} showDownload={false} />))

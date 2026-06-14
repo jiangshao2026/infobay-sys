@@ -1,6 +1,6 @@
 import { Card, Table, Button, Tag, Input, InputNumber, Select, DatePicker, Modal, Form, message, Space, Statistic, Row, Col, Divider } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, EyeOutlined, DeleteOutlined, SafetyCertificateOutlined, PrinterOutlined, DownloadOutlined } from '@ant-design/icons'
-import { useState } from 'react'
+import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 
 import { getProjectNameByCode } from '../../data/projects'
@@ -29,7 +29,7 @@ const { Option } = Select
 
 function PaymentManagement() {
   const [paymentList, setPaymentList] = useState<PaymentMgmtItem[]>(paymentMgmtData)
-  const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
+const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
   const [currentItem, setCurrentItem] = useState<PaymentMgmtItem | null>(null)
   const [isModalVisible, setIsModalVisible] = useState(false)
@@ -64,14 +64,17 @@ function PaymentManagement() {
   }
 
   const updatePaymentStatus = (key: string, status: PaymentMgmtStatus) => {
-    setPaymentList(prev => prev.map(p => (p.key === key ? { ...p, status } : p)))
+    setPaymentList(prev => {
+      const next = prev.map(p => (p.key === key ? { ...p, status } : p))
+      return next
+    })
     if (currentItem && currentItem.key === key) {
       setCurrentItem({ ...currentItem, status })
     }
   }
 
   const handleSearch = (values: PaymentMgmtSearchParams) => {
-    const filtered = paymentMgmtData.filter(item => {
+    const filtered = paymentList.filter(item => {
       if (values.keyword) {
         const kw = values.keyword.toLowerCase()
         if (
@@ -95,7 +98,7 @@ function PaymentManagement() {
 
   const handleReset = () => {
     searchForm.resetFields()
-    setPaymentList(paymentMgmtData)
+    setPaymentList([...paymentList])
   }
 
   const handleView = (record: PaymentMgmtItem) => {
@@ -105,7 +108,7 @@ function PaymentManagement() {
 
   const showModal = () => {
     form.resetFields()
-    const seqNum = String(paymentMgmtData.length + 1).padStart(3, '0')
+    const seqNum = String(allDataRef.current.length + 1).padStart(3, '0')
     form.setFieldsValue({
       code: `PAY-${dayjs().format('YYYYMM')}-${seqNum}`,
       status: '待审批',

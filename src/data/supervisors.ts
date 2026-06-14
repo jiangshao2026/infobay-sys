@@ -18,6 +18,12 @@ const initialData: SupervisorItem[] = [
     department: '信息系统监理部',
     status: '在职',
     description: '信息系统监理师、信息系统项目管理师、软件造价工程师、系统架构设计师。15年信息系统建设监理经验，主持多项大型信息系统项目。',
+    certificates: [
+      { key: 'sc1', type: '信息系统项目管理师', certificateNo: 'XXPM-2015-0012', issueDate: '2015-03-15', expiryDate: '2028-03-14', issueOrganization: '工业和信息化部人才交流中心', attachments: [{ name: '项目管理师证书.pdf', url: '#sc1' }] },
+      { key: 'sc2', type: '信息系统监理师', certificateNo: 'XXJL-2018-0567', issueDate: '2018-06-20', expiryDate: '2026-06-19', issueOrganization: '工业和信息化部人才交流中心', attachments: [{ name: '监理师证书.pdf', url: '#sc2' }] },
+      { key: 'sc3', type: '系统架构设计师', certificateNo: 'XXJG-2016-0089', issueDate: '2016-09-10', expiryDate: '2026-09-09', issueOrganization: '工业和信息化部人才交流中心', attachments: [{ name: '架构设计师证书.pdf', url: '#sc3' }] },
+      { key: 'sc4', type: '软件造价工程师', certificateNo: 'XXZJ-2019-0034', issueDate: '2019-11-05', expiryDate: '2027-11-04', issueOrganization: '中国软件行业协会', attachments: [{ name: '造价工程师证书.pdf', url: '#sc4' }] },
+    ],
   },
   {
     key: 'sp-2',
@@ -36,6 +42,10 @@ const initialData: SupervisorItem[] = [
     department: '信息系统监理部',
     status: '在职',
     description: '负责视频会议与指挥中心类项目的监理工作。',
+    certificates: [
+      { key: 'sc-lw1', type: '系统架构设计师', certificateNo: 'XXJG-2017-0234', issueDate: '2017-06-15', expiryDate: '2027-06-14', issueOrganization: '工业和信息化部人才交流中心', attachments: [{ name: '架构设计师证书.pdf', url: '#sc-lw1' }] },
+      { key: 'sc-lw2', type: '系统分析师', certificateNo: 'XXFX-2018-0567', issueDate: '2018-05-20', expiryDate: '2028-05-19', issueOrganization: '工业和信息化部人才交流中心', attachments: [{ name: '系统分析师证书.pdf', url: '#sc-lw2' }] },
+    ],
   },
   {
     key: 'sp-3',
@@ -54,6 +64,9 @@ const initialData: SupervisorItem[] = [
     department: '信息系统监理部',
     status: '在职',
     description: '擅长智慧监管平台类项目监理工作。',
+    certificates: [
+      { key: 'sc-hzq1', type: '信息系统监理师', certificateNo: 'XXJL-2019-0890', issueDate: '2019-04-10', expiryDate: '2029-04-09', issueOrganization: '工业和信息化部人才交流中心', attachments: [{ name: '监理师证书.pdf', url: '#sc-hzq1' }] },
+    ],
   },
   {
     key: 'sp-4',
@@ -72,6 +85,10 @@ const initialData: SupervisorItem[] = [
     department: '信息系统监理部',
     status: '在职',
     description: '信息系统监理师、软件造价工程师。负责民政系统等政务信息化项目监理。',
+    certificates: [
+      { key: 'sc-thy1', type: '信息系统监理师', certificateNo: 'XXJL-2022-0345', issueDate: '2022-03-10', expiryDate: '2032-03-09', issueOrganization: '工业和信息化部人才交流中心', attachments: [{ name: '监理师证书.pdf', url: '#sc-thy1' }] },
+      { key: 'sc-thy2', type: '软件造价工程师', certificateNo: 'XXZJ-2022-0890', issueDate: '2022-08-10', expiryDate: '2032-08-09', issueOrganization: '中国软件行业协会', attachments: [{ name: '造价工程师证书.pdf', url: '#sc-thy2' }] },
+    ],
   },
   {
     key: 'sp-5',
@@ -90,6 +107,10 @@ const initialData: SupervisorItem[] = [
     department: '基础设施监理部',
     status: '在职',
     description: '数字政府与政务云基础设施项目资深监理。',
+    certificates: [
+      { key: 'sc-zjh1', type: '信息系统项目管理师', certificateNo: 'XXPM-2012-0089', issueDate: '2012-05-20', expiryDate: '2025-12-31', issueOrganization: '工业和信息化部人才交流中心', attachments: [{ name: '项目管理师证书.pdf', url: '#sc-zjh1' }] },
+      { key: 'sc-zjh2', type: '软件造价工程师', certificateNo: 'XXZJ-2010-0456', issueDate: '2010-08-15', expiryDate: '2025-08-14', issueOrganization: '中国软件行业协会', attachments: [{ name: '造价工程师证书.pdf', url: '#sc-zjh2' }] },
+    ],
   },
   {
     key: 'sp-6',
@@ -108,6 +129,9 @@ const initialData: SupervisorItem[] = [
     department: '信息系统监理部',
     status: '在职',
     description: '智慧警务与情报指挥中心项目监理。',
+    certificates: [
+      { key: 'sc-lxf1', type: '系统集成项目管理工程师', certificateNo: 'XXIT-2021-0123', issueDate: '2021-01-15', expiryDate: '2031-01-14', issueOrganization: '工业和信息化部人才交流中心', attachments: [{ name: '集成项目管理工程师证书.pdf', url: '#sc-lxf1' }] },
+    ],
   },
   {
     key: 'sp-8',
@@ -144,6 +168,9 @@ const initialData: SupervisorItem[] = [
     department: '信息系统监理部',
     status: '在职',
     description: '数据库系统工程师、软件造价工程师。',
+    certificates: [
+      { key: 'sc-zym1', type: '数据库系统工程师', certificateNo: 'XXDB-2019-0234', issueDate: '2019-11-15', expiryDate: '2029-11-14', issueOrganization: '工业和信息化部人才交流中心', attachments: [{ name: '数据库系统工程师证书.pdf', url: '#sc-zym1' }] },
+    ],
   },
   {
     key: 'sp-10',
@@ -162,6 +189,9 @@ const initialData: SupervisorItem[] = [
     department: '信息系统监理部',
     status: '在职',
     description: '软件造价工程师、信息系统监理工程师。',
+    certificates: [
+      { key: 'sc-slj1', type: '软件造价工程师', certificateNo: 'XXZJ-2021-0789', issueDate: '2021-07-10', expiryDate: '2031-07-09', issueOrganization: '中国软件行业协会', attachments: [{ name: '造价工程师证书.pdf', url: '#sc-slj1' }] },
+    ],
   },
 ]
 

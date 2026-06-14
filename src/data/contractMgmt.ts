@@ -18,6 +18,10 @@ const contractMgmtData: ContractMgmtItem[] = [
     signDate: '2025-03-10',
     status: '执行中',
     contractType: '系统集成合同',
+    attachments: [
+      { name: '广东省市场监管局系统集成合同.pdf', url: '#ht001', size: 2560000, uploadedBy: '孙永秀', uploadDate: '2025-03-10', type: 'application/pdf' },
+      { name: '招投标文件-技术方案.docx', url: '#ht001b', size: 4820000, uploadedBy: '孙永秀', uploadDate: '2025-03-10', type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
+    ],
   },
   {
     key: '2',
@@ -32,6 +36,10 @@ const contractMgmtData: ContractMgmtItem[] = [
     signDate: '2025-01-28',
     status: '执行中',
     contractType: '设备采购与安装合同',
+    attachments: [
+      { name: '海洋执法总队设备采购合同.pdf', url: '#ht002', size: 3280000, uploadedBy: '孙永秀', uploadDate: '2025-01-28', type: 'application/pdf' },
+      { name: '设备清单及技术规格.docx', url: '#ht002b', size: 1860000, uploadedBy: '滕海燕', uploadDate: '2025-02-10', type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
+    ],
   },
   {
     key: '3',
@@ -46,6 +54,10 @@ const contractMgmtData: ContractMgmtItem[] = [
     signDate: '2025-01-08',
     status: '执行中',
     contractType: '系统集成与运维合同',
+    attachments: [
+      { name: '数字政府基础设施系统集成合同.pdf', url: '#ht003', size: 4120000, uploadedBy: '孙永秀', uploadDate: '2025-01-08', type: 'application/pdf' },
+      { name: 'SLA服务等级协议.docx', url: '#ht003b', size: 1520000, uploadedBy: '韦江腾', uploadDate: '2025-01-15', type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
+    ],
   },
   {
     key: '4',
@@ -60,6 +72,9 @@ const contractMgmtData: ContractMgmtItem[] = [
     signDate: '2024-08-12',
     status: '即将到期',
     contractType: '软件开发与集成合同',
+    attachments: [
+      { name: '潮州供水枢纽数字孪生平台合同.pdf', url: '#ht004', size: 2940000, uploadedBy: '孙永秀', uploadDate: '2024-08-12', type: 'application/pdf' },
+    ],
   },
   {
     key: '5',
@@ -74,6 +89,10 @@ const contractMgmtData: ContractMgmtItem[] = [
     signDate: '2025-05-18',
     status: '执行中',
     contractType: '软件开发合同',
+    attachments: [
+      { name: '赣数智一体化平台软件开发合同.pdf', url: '#ht005', size: 2350000, uploadedBy: '孙永秀', uploadDate: '2025-05-18', type: 'application/pdf' },
+      { name: '需求规格说明书V2.0.pdf', url: '#ht005b', size: 8740000, uploadedBy: '郑慧敏', uploadDate: '2025-06-05', type: 'application/pdf' },
+    ],
   },
   {
     key: '6',
@@ -88,6 +107,10 @@ const contractMgmtData: ContractMgmtItem[] = [
     signDate: '2025-05-28',
     status: '执行中',
     contractType: '系统建设与集成合同',
+    attachments: [
+      { name: '顺德医疗健康信息系统建设合同.pdf', url: '#ht006', size: 3650000, uploadedBy: '孙永秀', uploadDate: '2025-05-28', type: 'application/pdf' },
+      { name: '医疗数据安全合规承诺书.pdf', url: '#ht006b', size: 1240000, uploadedBy: '滕海燕', uploadDate: '2025-06-10', type: 'application/pdf' },
+    ],
   },
 ]
 

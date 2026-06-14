@@ -1,6 +1,6 @@
 import { Card, Table, Button, Space, Input, Select, Modal, Form, message, Popconfirm, Tag, DatePicker } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, PlayCircleOutlined, CheckCircleOutlined } from '@ant-design/icons'
-import { useState } from 'react'
+import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import initialIssueData from '../../data/qualityIssues'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
@@ -20,7 +20,7 @@ const issueStatusNext = (status: QCIssueStatus): QCIssueStatus => {
 
 const IssuePanel: React.FC = () => {
   const [list, setList] = useState<QualityIssueItem[]>(initialIssueData)
-  const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
+const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -128,7 +128,7 @@ const IssuePanel: React.FC = () => {
           {record.status !== '已完成' && (
             <Button type="link" icon={<PlayCircleOutlined />} size="small" onClick={() => handleCheckup(record)}>发起复查</Button>
           )}
-          {(record.status === '待整改' || record.status === '整改中' || record.status === '待复查') && (
+          {(record.status === '待整改' || record.status === '整改中' || record.status === '待复查' || record.status === '已驳回') && (
             <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>审批</Button>
           )}
           <Popconfirm
@@ -161,7 +161,7 @@ const IssuePanel: React.FC = () => {
   }
 
   const handleDelete = (key: string) => {
-    setList(prev => prev.filter(item => item.key !== key))
+    setList(prev => { const r = prev.filter(item => item.key !== key); return r })
     message.success('删除成功')
   }
 
@@ -201,7 +201,7 @@ const IssuePanel: React.FC = () => {
   const handleAddOk = () => {
     addForm.validateFields().then(values => {
       const newItem: QualityIssueItem = normalize(values, Date.now().toString(), [])
-      setList(prev => [newItem, ...prev])
+      setList(prev => { const r = [newItem, ...prev]; return r })
       setIsAddModalVisible(false)
       addForm.resetFields()
       message.success('新增成功')
@@ -211,9 +211,9 @@ const IssuePanel: React.FC = () => {
   const handleEditOk = () => {
     editForm.validateFields().then(values => {
       if (currentItem) {
-        setList(prev => prev.map(item =>
+        setList(prev => { const r = prev.map(item =>
           item.key === currentItem.key ? normalize(values, currentItem.key, currentItem.attachments) : item
-        ))
+        ); return r })
         setIsEditModalVisible(false)
         editForm.resetFields()
         setCurrentItem(null)
@@ -226,9 +226,9 @@ const IssuePanel: React.FC = () => {
     checkupForm.validateFields().then(values => {
       if (currentItem) {
         const next = values.status || issueStatusNext(currentItem.status)
-        setList(prev => prev.map(item =>
+        setList(prev => { const r = prev.map(item =>
           item.key === currentItem.key ? { ...item, status: next, corrective: values.corrective || item.corrective } : item
-        ))
+        ); return r })
         setIsCheckupModalVisible(false)
         checkupForm.resetFields()
         setCurrentItem(null)
@@ -239,7 +239,7 @@ const IssuePanel: React.FC = () => {
 
   const handleSearch = () => {
     searchForm.validateFields().then(values => {
-      let filtered = initialIssueData.filter(item => {
+      let filtered = list.filter(item => {
         let match = true
         if (values.keyword) {
           const kw = values.keyword.toLowerCase()
@@ -264,7 +264,7 @@ const IssuePanel: React.FC = () => {
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList(initialIssueData)
+    setList([...list])
   }
 
   const handleCancel = () => {
@@ -296,11 +296,11 @@ const IssuePanel: React.FC = () => {
     setApprovalMap(prev => ({ ...prev, [key]: [...existingRecords, newRecord] }))
 
     if (payload.status === '驳回') {
-      setList(prev => prev.map(item => item.key === key ? { ...item, status: '已驳回' as QCIssueStatus } : item))
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '已驳回' as QCIssueStatus } : item); return r })
       message.success('已驳回')
     } else {
       const next = issueStatusNext(currentItem.status)
-      setList(prev => prev.map(item => item.key === key ? { ...item, status: next } : item))
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: next } : item); return r })
       message.success('审批已提交')
     }
     setIsReviewModalVisible(false)

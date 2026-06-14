@@ -1,6 +1,6 @@
 import { Card, Table, Button, Space, Input, Select, DatePicker, Modal, Form, message, Popconfirm } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, DashboardOutlined } from '@ant-design/icons'
-import { useState } from 'react'
+import {  useState, useRef , useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
 import initialProjectData from '../../data/projects'
@@ -16,7 +16,7 @@ const { Option } = Select
 function ProjectManagement() {
   const navigate = useNavigate()
   const [projectData, setProjectData] = useState<ProjectItem[]>(initialProjectData)
-  const [isAddModalVisible, setIsAddModalVisible] = useState(false)
+const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
   const [currentProject, setCurrentProject] = useState<ProjectItem | null>(null)
@@ -150,9 +150,12 @@ function ProjectManagement() {
       okText: '确认通过',
       cancelText: '取消',
       onOk: () => {
-        setProjectData(prev => prev.map(item =>
-          item.key === record.key ? { ...item, approvalStatus: '已通过', approver: '管理员' } : item
-        ))
+        setProjectData(prev => {
+          const next = prev.map(item =>
+            item.key === record.key ? { ...item, approvalStatus: '已通过', approver: '管理员' } : item
+          )
+          return next
+        })
         message.success('审批通过')
       },
     })
@@ -166,9 +169,12 @@ function ProjectManagement() {
       cancelText: '取消',
       okButtonProps: { danger: true },
       onOk: () => {
-        setProjectData(prev => prev.map(item =>
-          item.key === record.key ? { ...item, approvalStatus: '已驳回', approver: '管理员' } : item
-        ))
+        setProjectData(prev => {
+          const next = prev.map(item =>
+            item.key === record.key ? { ...item, approvalStatus: '已驳回', approver: '管理员' } : item
+          )
+          return next
+        })
         message.success('已驳回')
       },
     })
@@ -186,7 +192,10 @@ function ProjectManagement() {
   }
 
   const handleDelete = (key: string) => {
-    setProjectData(prev => prev.filter(item => item.key !== key))
+    setProjectData(prev => {
+      const next = prev.filter(item => item.key !== key)
+      return next
+    })
     message.success('删除成功')
   }
 
@@ -212,7 +221,10 @@ function ProjectManagement() {
         approvalStatus: '待审批',
         approver: '',
       }
-      setProjectData(prev => [newProject, ...prev])
+      setProjectData(prev => {
+        const next = [newProject, ...prev]
+        return next
+      })
       setIsAddModalVisible(false)
       addForm.resetFields()
       message.success('新增成功')
@@ -229,17 +241,20 @@ function ProjectManagement() {
           message.error(dateCheck.message || '日期校验失败')
           return
         }
-        setProjectData(prev => prev.map(item =>
-          item.key === currentProject.key ? {
-            ...values,
-            key: currentProject.key,
-            investment: parseAmountFromForm(values.investment),
-            startDate: startStr,
-            endDate: endStr,
-            approvalStatus: currentProject.approvalStatus,
-            approver: currentProject.approver,
-          } : item
-        ))
+        setProjectData(prev => {
+          const next = prev.map(item =>
+            item.key === currentProject.key ? {
+              ...values,
+              key: currentProject.key,
+              investment: parseAmountFromForm(values.investment),
+              startDate: startStr,
+              endDate: endStr,
+              approvalStatus: currentProject.approvalStatus,
+              approver: currentProject.approver,
+            } : item
+          )
+          return next
+        })
         setIsEditModalVisible(false)
         editForm.resetFields()
         setCurrentProject(null)
@@ -249,7 +264,7 @@ function ProjectManagement() {
   }
 
   const handleSearch = (values: ProjectSearchParams) => {
-    let filtered = initialProjectData.filter(item => {
+    let filtered = projectData.filter(item => {
       let match = true
       if (values.keyword) {
         const kw = values.keyword.toLowerCase()
@@ -281,7 +296,7 @@ function ProjectManagement() {
 
   const handleReset = () => {
     searchForm.resetFields()
-    setProjectData(initialProjectData)
+    setProjectData([...projectData])
   }
 
   const handleCancel = () => {

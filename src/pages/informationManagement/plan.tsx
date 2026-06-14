@@ -1,6 +1,6 @@
 import { Card, Table, Button, Input, Select, DatePicker, Modal, Form, Upload, message, Space, Popconfirm } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, EyeOutlined, DeleteOutlined, CheckCircleOutlined, UploadOutlined } from '@ant-design/icons'
-import { useState } from 'react'
+import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
@@ -23,7 +23,7 @@ const PLAN_TYPES: PlanType[] = [
 
 function Plan() {
   const [list, setList] = useState<PlanItem[]>(planData)
-  const [isDetailVisible, setIsDetailVisible] = useState(false)
+const [isDetailVisible, setIsDetailVisible] = useState(false)
   const [currentPlan, setCurrentPlan] = useState<PlanItem | null>(null)
   const [isAddVisible, setIsAddVisible] = useState(false)
   const [isEditVisible, setIsEditVisible] = useState(false)
@@ -36,7 +36,7 @@ function Plan() {
   const [editFileList, setEditFileList] = useState<any[]>([])
 
   const handleSearch = (values: PlanSearchParams) => {
-    const filtered = planData.filter(item => {
+    const filtered = list.filter(item => {
       if (values.keyword) {
         const kw = values.keyword.toLowerCase()
         if (
@@ -69,7 +69,7 @@ function Plan() {
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList(planData)
+    setList([...list])
   }
 
   const handleView = (record: PlanItem) => {
@@ -94,7 +94,10 @@ function Plan() {
   }
 
   const handleDelete = (key: string) => {
-    setList(prev => prev.filter(item => item.key !== key))
+    setList(prev => {
+      const result = prev.filter(item => item.key !== key)
+      return result
+    })
     message.success('删除成功')
   }
 
@@ -119,13 +122,19 @@ function Plan() {
     }
     setApprovalMap(prev => ({ ...prev, [key]: [...existingRecords, newRecord] }))
     if (payload.status === '通过') {
-      setList(prev => prev.map(item => item.key === key ? { ...item, status: '已审批' as PlanStatus } : item))
+      setList(prev => {
+        const result = prev.map(item => item.key === key ? { ...item, status: '已审批' as PlanStatus } : item)
+        return result
+      })
       if (currentPlan.key === key) {
         setCurrentPlan(prev => prev ? { ...prev, status: '已审批' } : prev)
       }
       message.success('审批通过')
     } else {
-      setList(prev => prev.map(item => item.key === key ? { ...item, status: '编制中' as PlanStatus } : item))
+      setList(prev => {
+        const result = prev.map(item => item.key === key ? { ...item, status: '编制中' as PlanStatus } : item)
+        return result
+      })
       if (currentPlan.key === key) {
         setCurrentPlan(prev => prev ? { ...prev, status: '编制中' } : prev)
       }
@@ -144,13 +153,16 @@ function Plan() {
       const newPlan: PlanItem = {
         ...values,
         key: Date.now().toString(),
-        code: values.code || `PLAN-${dayjs().format('YYYYMMDD')}-${String(planData.length + 1).padStart(3, '0')}`,
+        code: values.code || `PLAN-${dayjs().format('YYYYMMDD')}-${String(allDataRef.current.length + 1).padStart(3, '0')}`,
         createDate: values.createDate ? values.createDate.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
         reviewDate: values.reviewDate ? values.reviewDate.format('YYYY-MM-DD') : undefined,
         status: values.status || '编制中',
         attachments: addFileList.map(f => ({ name: f.name, url: f.url || '#' })),
       }
-      setList(prev => [newPlan, ...prev])
+      setList(prev => {
+        const result = [newPlan, ...prev]
+        return result
+      })
       setIsAddVisible(false)
       message.success('新增成功')
     })
@@ -159,8 +171,8 @@ function Plan() {
   const handleEditOk = () => {
     editForm.validateFields().then(values => {
       if (currentPlan) {
-        setList(prev =>
-          prev.map(item =>
+        setList(prev => {
+          const result = prev.map(item =>
             item.key === currentPlan.key
               ? {
                   ...values,
@@ -171,7 +183,8 @@ function Plan() {
                 }
               : item
           )
-        )
+          return result
+        })
         setIsEditVisible(false)
         setCurrentPlan(null)
         message.success('修改成功')

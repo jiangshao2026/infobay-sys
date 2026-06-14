@@ -1,79 +1,154 @@
-import { Card, Table, Tag, Space, Button } from 'antd'
-import { UserOutlined } from '@ant-design/icons'
-import { DEMO_USERS } from '../../context/UserContext'
+import { Card, Table, Tag, Space, Button, Modal, Form, Input, Select, message, Popconfirm } from 'antd'
+import { UserOutlined, PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, EyeOutlined } from '@ant-design/icons'
+import { useState } from 'react'
+import { DEMO_USERS, type DemoUser } from '../../context/UserContext'
+import { CompactTableCssOnly } from '../../components/DetailModal'
 
-const columns = [
-  {
-    title: '头像',
-    dataIndex: 'avatarText',
-    key: 'avatar',
-    width: 80,
-    render: (text: string) => (
-      <div
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: '50%',
-          background: '#1890ff',
-          color: '#fff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontWeight: 'bold',
-        }}
-      >
-        {text}
-      </div>
-    ),
-  },
-  { title: '姓名', dataIndex: 'name', key: 'name' },
-  { title: '职位', dataIndex: 'position', key: 'position' },
-  {
-    title: '角色',
-    dataIndex: 'role',
-    key: 'role',
-    render: (role: string) => {
-      let color = 'blue'
-      if (role === '副总经理') color = 'purple'
-      else if (role === '部门经理') color = 'geekblue'
-      else if (role === '总监理工程师') color = 'cyan'
-      else if (role === '监理工程师') color = 'green'
-      else if (role === '销售') color = 'orange'
-      return <Tag color={color}>{role}</Tag>
-    },
-  },
-  {
-    title: '操作',
-    key: 'action',
-    render: () => (
-      <Space>
-        <Button size="small" type="link">查看</Button>
-        <Button size="small" type="link">编辑</Button>
-      </Space>
-    ),
-  },
-]
+const { Option } = Select
+
+const roleColorMap: Record<string, string> = {
+  '副总经理': 'purple', '部门经理': 'geekblue', '总监理工程师': 'cyan',
+  '监理工程师': 'green', '销售': 'orange',
+}
 
 function UserPage() {
+  const [list, setList] = useState<DemoUser[]>(DEMO_USERS)
+  const [isModalVisible, setIsModalVisible] = useState(false)
+  const [isViewVisible, setIsViewVisible] = useState(false)
+  const [currentItem, setCurrentItem] = useState<DemoUser | null>(null)
+  const [editing, setEditing] = useState(false)
+  const [form] = Form.useForm()
+  const [searchForm] = Form.useForm()
+  const [searchKeyword, setSearchKeyword] = useState('')
+
+  const filteredList = list.filter(item => {
+    if (!searchKeyword) return true
+    const kw = searchKeyword.toLowerCase()
+    return item.name.toLowerCase().includes(kw) || item.position.toLowerCase().includes(kw) || item.role.toLowerCase().includes(kw)
+  })
+
+  const handleSearch = () => {
+    searchForm.validateFields().then(v => setSearchKeyword(v.keyword || '')).catch(() => {})
+  }
+  const handleReset = () => { searchForm.resetFields(); setSearchKeyword('') }
+
+  const showAdd = () => { setEditing(false); form.resetFields(); setIsModalVisible(true) }
+  const handleEdit = (record: DemoUser) => {
+    setEditing(true); setCurrentItem(record)
+    form.setFieldsValue(record); setIsModalVisible(true)
+  }
+  const handleView = (record: DemoUser) => { setCurrentItem(record); setIsViewVisible(true) }
+
+  const handleOk = () => {
+    form.validateFields().then(values => {
+      if (editing && currentItem) {
+        setList(prev => prev.map(i => i.key === currentItem.key ? {
+          ...i,
+          name: values.name,
+          position: values.position,
+          role: values.role,
+          avatarText: values.name.charAt(0),
+        } : i))
+        message.success('修改成功')
+      } else {
+        const newUser: DemoUser = {
+          key: 'u' + Date.now(),
+          name: values.name,
+          position: values.position,
+          role: values.role,
+          avatarText: values.name.charAt(0),
+        }
+        setList(prev => [newUser, ...prev])
+        message.success('新增成功')
+      }
+      setIsModalVisible(false); form.resetFields()
+    }).catch(() => {})
+  }
+
+  const handleDelete = (key: string) => {
+    if (list.length <= 1) { message.warning('至少保留一个用户'); return }
+    setList(prev => prev.filter(i => i.key !== key))
+    message.success('已删除')
+  }
+
+  const columns = [
+    { title: '头像', dataIndex: 'avatarText', key: 'avatar', width: 70, render: (t: string) => (
+      <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#1890ff', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>{t}</div>
+    )},
+    { title: '姓名', dataIndex: 'name', key: 'name', width: 120 },
+    { title: '职位', dataIndex: 'position', key: 'position', width: 200 },
+    { title: '角色', dataIndex: 'role', key: 'role', width: 150, render: (role: string) => <Tag color={roleColorMap[role] || 'blue'}>{role}</Tag> },
+    {
+      title: '操作', key: 'action', width: 200,
+      render: (_: unknown, record: DemoUser) => (
+        <Space size="small">
+          <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => handleView(record)}>查看</Button>
+          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>编辑</Button>
+          <Popconfirm title="确定删除此用户？" onConfirm={() => handleDelete(record.key)} okText="确定" cancelText="取消">
+            <Button type="link" size="small" danger icon={<DeleteOutlined />}>删除</Button>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ]
+
   return (
     <div>
-      <Card
-        title={
-          <Space>
-            <UserOutlined />
-            <span>用户管理</span>
-          </Space>
-        }
-        style={{ marginBottom: 16 }}
-      >
-        <p style={{ margin: 0, color: '#666' }}>
-          系统用户列表，包含不同角色的用户信息。
-        </p>
+      <CompactTableCssOnly />
+      <Card title={<Space><UserOutlined /><span>用户管理</span></Space>} style={{ marginBottom: 16 }}
+        extra={<Button type="primary" icon={<PlusOutlined />} onClick={showAdd}>新增用户</Button>}>
+        <Form form={searchForm} layout="inline" style={{ marginBottom: 16 }}>
+          <Form.Item name="keyword">
+            <Input placeholder="姓名/职位/角色" prefix={<SearchOutlined />} style={{ width: 220 }} />
+          </Form.Item>
+          <Form.Item><Button type="primary" onClick={handleSearch}>查询</Button></Form.Item>
+          <Form.Item><Button onClick={handleReset}>重置</Button></Form.Item>
+        </Form>
+        <Table
+          dataSource={filteredList}
+          columns={columns}
+          pagination={false}
+          size="middle"
+          rowKey="key"
+          onRow={(record: DemoUser) => ({
+            onClick: () => handleView(record),
+            style: { cursor: 'pointer' },
+          })}
+        />
       </Card>
 
-      <Card title="用户列表">
-        <Table dataSource={DEMO_USERS} columns={columns} pagination={false} bordered />
-      </Card>
+      <Modal title={editing ? '编辑用户' : '新增用户'} open={isModalVisible} onOk={handleOk} onCancel={() => setIsModalVisible(false)} width={480} okText="保存" cancelText="取消">
+        <Form form={form} layout="vertical">
+          <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
+            <Input placeholder="请输入姓名" />
+          </Form.Item>
+          <Form.Item name="position" label="职位" rules={[{ required: true, message: '请输入职位' }]}>
+            <Input placeholder="请输入职位" />
+          </Form.Item>
+          <Form.Item name="role" label="角色" rules={[{ required: true, message: '请选择角色' }]}>
+            <Select placeholder="请选择角色">
+              <Option value="副总经理">副总经理</Option>
+              <Option value="部门经理">部门经理</Option>
+              <Option value="总监理工程师">总监理工程师</Option>
+              <Option value="监理工程师">监理工程师</Option>
+              <Option value="销售">销售</Option>
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal title="用户详情" open={isViewVisible} onCancel={() => setIsViewVisible(false)} footer={null} width={400}>
+        {currentItem && (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#1890ff', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: 24, marginBottom: 16 }}>
+              {currentItem.avatarText}
+            </div>
+            <p><strong>姓名：</strong>{currentItem.name}</p>
+            <p><strong>职位：</strong>{currentItem.position}</p>
+            <p><strong>角色：</strong><Tag color={roleColorMap[currentItem.role] || 'blue'}>{currentItem.role}</Tag></p>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

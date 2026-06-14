@@ -1,6 +1,6 @@
 import { Card, Table, Button, Tag, Input, Select, DatePicker, Modal, Form, message, Space, Statistic, Row, Col } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, EyeOutlined } from '@ant-design/icons'
-import { useState } from 'react'
+import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
@@ -9,9 +9,12 @@ import type {
   ContractMgmtItem,
   ContractMgmtStatus,
   ContractMgmtSearchParams,
+  DocumentAttachment,
 } from '../../types/projectManagement'
 import { formatCurrency, parseWanyuan } from '../../utils/format'
-import { DetailModal, descItem, descText, descTag, statusColor, CompactTableCssOnly } from '../../components/DetailModal'
+import { DetailModal, descItem, descText, descTag, statusColor, descAttachments, CompactTableCssOnly } from '../../components/DetailModal'
+import { DocumentUploader } from '../../components/DocumentUploader'
+import AttachmentPreview from '../../components/AttachmentPreview'
 
 const { Option } = Select
 
@@ -22,18 +25,19 @@ function ContractManagement() {
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [currentEditItem, setCurrentEditItem] = useState<ContractMgmtItem | null>(null)
+  const [editFileList, setEditFileList] = useState<DocumentAttachment[]>([])
   const [form] = Form.useForm()
   const [editForm] = Form.useForm()
   const [searchForm] = Form.useForm()
 
-  const totalAmount = contractMgmtData.reduce((sum, c) => sum + c.amount, 0)
-  const activeCount = contractMgmtData.filter(c => c.status === '执行中').length
+  const totalAmount = contractList.reduce((sum, c) => sum + c.amount, 0)
+  const activeCount = contractList.filter(c => c.status === '执行中').length
   const pendingPaymentAmount = paymentMgmtData
     .filter(p => p.status === '待支付')
     .reduce((sum, p) => sum + p.amount, 0)
 
   const handleSearch = (values: ContractMgmtSearchParams) => {
-    const filtered = contractMgmtData.filter(item => {
+    const filtered = contractList.filter(item => {
       if (values.keyword) {
         const kw = values.keyword.toLowerCase()
         if (
@@ -57,7 +61,7 @@ function ContractManagement() {
 
   const handleReset = () => {
     searchForm.resetFields()
-    setContractList(contractMgmtData)
+    setContractList([...contractList])
   }
 
   const handleView = (record: ContractMgmtItem) => {
@@ -121,6 +125,7 @@ function ContractManagement() {
       status: record.status,
       contractType: record.contractType,
     })
+    setEditFileList((record.attachments || []).map(a => ({ name: a.name, url: a.url })))
     setIsEditModalVisible(true)
   }
 
@@ -140,6 +145,7 @@ function ContractManagement() {
         endDate: dayjs(values.endDate).format('YYYY-MM-DD'),
         status: values.status as ContractMgmtStatus,
         contractType: values.contractType,
+        attachments: editFileList.map(f => ({ name: f.name, url: f.url || '#' })) as any,
       }
       const updated = contractList.map(c => (c.key === currentEditItem.key ? updatedItem : c))
       setContractList(updated)
@@ -382,6 +388,7 @@ function ContractManagement() {
                 descItem('结束日期', descText(currentItem.endDate)),
                 descItem('状态', descTag(currentItem.status, statusColor)),
                 descItem('合同类型', descText(currentItem.contractType)),
+                descItem('合同附件', <AttachmentPreview attachments={currentItem.attachments as any} />),
               ]
             : []
         }
@@ -570,6 +577,12 @@ function ContractManagement() {
               </Form.Item>
             </Col>
           </Row>
+          <Form.Item label="合同附件">
+            <DocumentUploader
+              value={editFileList}
+              onChange={(docs) => setEditFileList(docs)}
+            />
+          </Form.Item>
         </Form>
       </Modal>
     </div>

@@ -1,6 +1,6 @@
 import { Card, Table, Button, Tag, Input, Select, DatePicker, Modal, Form, message, Space, Progress, Spin } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, WalletOutlined, EyeOutlined, CheckCircleOutlined, DownloadOutlined, PrinterOutlined, RobotOutlined } from '@ant-design/icons'
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useRef, useEffect } from 'react'
 import dayjs from 'dayjs'
 import { DocumentUploader } from '../../components/DocumentUploader'
 import type { DocumentAttachment } from '../../types/projectManagement'
@@ -247,8 +247,11 @@ function SupervisionContract() {
   }
 
   const handleReceive = (record: ContractItem) => {
-    const currentProgress = record.progress
-    const newProgress = Math.min(currentProgress + 25, 100)
+    const currentProgress = record.progress || 0
+    // 根据合同预设的阶段数计算每阶段进度（默认4阶段：初验/中验/终验/尾款）
+    const stages = 4
+    const progressPerStage = Math.round(100 / stages)
+    const newProgress = Math.min(currentProgress + progressPerStage, 100)
     Modal.confirm({
       title: '确认收款',
       content: `确认合同「${record.name}」收到一笔款项？当前进度 ${currentProgress}%，操作后进度将更新为 ${newProgress}%。`,
@@ -301,11 +304,18 @@ function SupervisionContract() {
   }
 
   // AI智能审核：15秒后返回模拟审核意见
+  const aiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    return () => {
+      if (aiTimerRef.current) clearTimeout(aiTimerRef.current)
+    }
+  }, [])
+
   const handleAiReview = () => {
     salesInitiateForm.validateFields().then(() => {
       setAiReviewing(true)
       setAiReviewResult(null)
-      setTimeout(() => {
+      aiTimerRef.current = setTimeout(() => {
         const results = [
           '项目首付款低于合同总金额30%，注意项目收款风险。建议增加付款保函或阶段性验收条款。',
           '违约条款甲乙双方不对等，注意项目违约风险。建议增加违约责任对等条款。',
@@ -318,9 +328,10 @@ function SupervisionContract() {
         const count = 2 + Math.floor(Math.random() * 2)
         setAiReviewResult(shuffled.slice(0, count))
         setAiReviewing(false)
-      }, 15000) // 15秒模拟AI审核
+        aiTimerRef.current = null
+      }, 15000)
     }).catch(() => {
-      // 验证失败（例如未选择总监理工程师或未填意见）
+      // 验证失败
     })
   }
 

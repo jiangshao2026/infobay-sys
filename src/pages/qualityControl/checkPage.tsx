@@ -1,6 +1,6 @@
 import { Card, Table, Button, Space, Input, Select, DatePicker, Modal, Form, message, Popconfirm, Tag } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, CheckCircleOutlined } from '@ant-design/icons'
-import { useState } from 'react'
+import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import initialCheckData from '../../data/qualityChecks'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
@@ -52,7 +52,7 @@ interface CheckPageProps {}
 
 const CheckPanel: React.FC<CheckPageProps> = () => {
   const [list, setList] = useState<QualityCheckItem[]>(initialCheckData)
-  const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
+const [approvalMap, setApprovalMap] = useState<Record<string, ApprovalRecord[]>>({})
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -179,7 +179,7 @@ const CheckPanel: React.FC<CheckPageProps> = () => {
   }
 
   const handleDelete = (key: string) => {
-    setList(prev => prev.filter(item => item.key !== key))
+    setList(prev => { const r = prev.filter(item => item.key !== key); return r })
     message.success('删除成功')
   }
 
@@ -212,7 +212,7 @@ const CheckPanel: React.FC<CheckPageProps> = () => {
   const handleAddOk = () => {
     addForm.validateFields().then(values => {
       const newItem: QualityCheckItem = normalize(values, Date.now().toString(), [])
-      setList(prev => [newItem, ...prev])
+      setList(prev => { const r = [newItem, ...prev]; return r })
       setIsAddModalVisible(false)
       addForm.resetFields()
       message.success('新增成功')
@@ -222,9 +222,9 @@ const CheckPanel: React.FC<CheckPageProps> = () => {
   const handleEditOk = () => {
     editForm.validateFields().then(values => {
       if (currentItem) {
-        setList(prev => prev.map(item =>
+        setList(prev => { const r = prev.map(item =>
           item.key === currentItem.key ? normalize(values, currentItem.key, currentItem.attachments) : item
-        ))
+        ); return r })
         setIsEditModalVisible(false)
         editForm.resetFields()
         setCurrentItem(null)
@@ -235,7 +235,7 @@ const CheckPanel: React.FC<CheckPageProps> = () => {
 
   const handleSearch = () => {
     searchForm.validateFields().then(values => {
-      let filtered = initialCheckData.filter(item => {
+      let filtered = list.filter(item => {
         let match = true
         if (values.keyword) {
           const kw = values.keyword.toLowerCase()
@@ -260,7 +260,7 @@ const CheckPanel: React.FC<CheckPageProps> = () => {
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList(initialCheckData)
+    setList([...list])
   }
 
   const handleCancel = () => {
@@ -290,12 +290,12 @@ const CheckPanel: React.FC<CheckPageProps> = () => {
     setApprovalMap(prev => ({ ...prev, [key]: [...existingRecords, newRecord] }))
 
     if (payload.status === '驳回') {
-      setList(prev => prev.map(item => item.key === key ? { ...item, status: '已驳回' as QCCheckStatus } : item))
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '已驳回' as QCCheckStatus } : item); return r })
       message.success('已驳回')
     } else {
       const currentStatus = currentItem.status
       const next = nextCheckStatus(currentStatus)
-      setList(prev => prev.map(item => item.key === key ? { ...item, status: next } : item))
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: next } : item); return r })
       message.success('审批已提交')
     }
     setIsReviewModalVisible(false)

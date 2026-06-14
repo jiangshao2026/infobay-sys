@@ -1,6 +1,6 @@
 import { Card, Table, Button, Space, Input, Select, DatePicker, Form, message, Tag, Modal } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons'
-import { useState } from 'react'
+import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import initialData from '../../data/changeRequests'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
@@ -74,8 +74,8 @@ const normalizeLegacyList = (items: ChangeRequestItem[]): ChangeRecordItem[] =>
   }))
 
 function ChangeRecord() {
-  const [list, setList] = useState<ChangeRecordItem[]>(normalizeLegacyList(initialData))
-  const [isAddModalVisible, setIsAddModalVisible] = useState(false)
+  const [list, setList] = usePersistedState<ChangeRecordItem[]>('change-record-list', normalizeLegacyList(initialData))
+const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
   const [currentItem, setCurrentItem] = useState<ChangeRecordItem | null>(null)
@@ -217,7 +217,7 @@ function ChangeRecord() {
       cancelText: '取消',
       okButtonProps: { danger: true },
       onOk: () => {
-        setList(prev => prev.filter(item => item.key !== key))
+        setList(prev => { const r = prev.filter(item => item.key !== key); return r })
         message.success('删除成功')
       },
     })
@@ -273,7 +273,7 @@ function ChangeRecord() {
   const handleAddOk = () => {
     addForm.validateFields().then(values => {
       const newItem = normalize(values, Date.now().toString(), null)
-      setList(prev => [newItem, ...prev])
+      setList(prev => { const r = [newItem, ...prev]; return r })
       setIsAddModalVisible(false)
       addForm.resetFields()
       message.success('新增成功')
@@ -283,9 +283,9 @@ function ChangeRecord() {
   const handleEditOk = () => {
     editForm.validateFields().then(values => {
       if (currentItem) {
-        setList(prev => prev.map(item =>
+        setList(prev => { const r = prev.map(item =>
           item.key === currentItem.key ? normalize(values, currentItem.key, currentItem) : item
-        ))
+        ); return r })
         setIsEditModalVisible(false)
         editForm.resetFields()
         setCurrentItem(null)
@@ -296,7 +296,7 @@ function ChangeRecord() {
 
   const handleSearch = () => {
     searchForm.validateFields().then(values => {
-      let filtered = normalizeLegacyList(initialData).filter(item => {
+      let filtered = list.filter(item => {
         let match = true
         if (values.keyword) {
           const kw = values.keyword.toLowerCase()
@@ -325,7 +325,7 @@ function ChangeRecord() {
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList(normalizeLegacyList(initialData))
+    setList([...list])
   }
 
   const handleCancel = () => {

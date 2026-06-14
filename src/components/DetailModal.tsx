@@ -3,7 +3,7 @@
 // 说明：统一使用 Ant Design Descriptions 组件展示详情，
 //       替代各页面中手写的 div+span 重复代码
 // ============================================================
-import { Modal, Descriptions, Tag, Progress } from 'antd'
+import { Modal, Descriptions, Tag, Progress, List, Space } from 'antd'
 import { FileTextOutlined } from '@ant-design/icons'
 import type { DescriptionsProps } from 'antd'
 
@@ -191,19 +191,39 @@ export const descProgress = (progress: number): React.ReactNode => (
   <Progress percent={progress} size="small" style={{ maxWidth: 320 }} />
 )
 
+const formatFileSize = (bytes?: number): string => {
+  if (!bytes) return ''
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 export const descAttachments = (
-  attachments?: { name: string; url: string }[]
+  attachments?: { name: string; url: string; size?: number; uploadedBy?: string; uploadDate?: string }[]
 ): React.ReactNode => {
   if (!attachments || attachments.length === 0) return '—'
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {attachments.map((file, i) => (
-        <a key={i} href={file.url} target="_blank" rel="noopener noreferrer">
-          <FileTextOutlined style={{ marginRight: 6 }} />
-          {file.name}
-        </a>
-      ))}
-    </div>
+    <List
+      size="small"
+      bordered
+      dataSource={attachments}
+      renderItem={(file, i) => (
+        <List.Item>
+          <List.Item.Meta
+            avatar={<FileTextOutlined style={{ fontSize: 20, color: '#1890ff' }} />}
+            title={<a href={file.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13 }}>{file.name}</a>}
+            description={
+              <Space size={12} style={{ fontSize: 12, color: '#999' }}>
+                {file.size ? <span>{formatFileSize(file.size)}</span> : null}
+                {file.uploadedBy ? <span>上传人：{file.uploadedBy}</span> : null}
+                {file.uploadDate ? <span>{file.uploadDate}</span> : null}
+              </Space>
+            }
+          />
+        </List.Item>
+      )}
+      style={{ maxWidth: 520 }}
+    />
   )
 }
 

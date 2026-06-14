@@ -59,7 +59,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = (username: string, password: string) => {
     if (password !== DEFAULT_PASSWORD) {
-      return { ok: false, message: '密码错误，演示密码为：xinbai' }
+      return { ok: false, message: '密码错误' }
     }
     const user = DEMO_USERS.find((u) => u.name === username.trim())
     if (!user) {
