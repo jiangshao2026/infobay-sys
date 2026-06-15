@@ -1,9 +1,11 @@
 // ============================================================
 // 合同管理数据 - 建设合同与支付
 // （与项目管理模块中的监理合同不同，此处为业主方建设合同）
+// 含审批流演示数据：部分合同/支付处于"待审批""一审通过"状态
 // ============================================================
-import type { ContractMgmtItem, PaymentMgmtItem } from '../types/projectManagement'
+import type { ContractMgmtItem, PaymentMgmtItem, ApprovalRecord } from '../types/projectManagement'
 
+// ================== 建设合同 ==================
 const contractMgmtData: ContractMgmtItem[] = [
   {
     key: '1',
@@ -16,7 +18,7 @@ const contractMgmtData: ContractMgmtItem[] = [
     startDate: '2025-03-15',
     endDate: '2026-03-31',
     signDate: '2025-03-10',
-    status: '执行中',
+    status: '已审批',
     contractType: '系统集成合同',
     attachments: [
       { name: '广东省市场监管局系统集成合同.pdf', url: '#ht001', size: 2560000, uploadedBy: '孙永秀', uploadDate: '2025-03-10', type: 'application/pdf' },
@@ -34,7 +36,7 @@ const contractMgmtData: ContractMgmtItem[] = [
     startDate: '2025-02-01',
     endDate: '2026-01-31',
     signDate: '2025-01-28',
-    status: '执行中',
+    status: '已审批',
     contractType: '设备采购与安装合同',
     attachments: [
       { name: '海洋执法总队设备采购合同.pdf', url: '#ht002', size: 3280000, uploadedBy: '孙永秀', uploadDate: '2025-01-28', type: 'application/pdf' },
@@ -52,7 +54,7 @@ const contractMgmtData: ContractMgmtItem[] = [
     startDate: '2025-01-10',
     endDate: '2026-12-31',
     signDate: '2025-01-08',
-    status: '执行中',
+    status: '一审通过',
     contractType: '系统集成与运维合同',
     attachments: [
       { name: '数字政府基础设施系统集成合同.pdf', url: '#ht003', size: 4120000, uploadedBy: '孙永秀', uploadDate: '2025-01-08', type: 'application/pdf' },
@@ -87,7 +89,7 @@ const contractMgmtData: ContractMgmtItem[] = [
     startDate: '2025-05-20',
     endDate: '2026-08-31',
     signDate: '2025-05-18',
-    status: '执行中',
+    status: '待审批',
     contractType: '软件开发合同',
     attachments: [
       { name: '赣数智一体化平台软件开发合同.pdf', url: '#ht005', size: 2350000, uploadedBy: '孙永秀', uploadDate: '2025-05-18', type: 'application/pdf' },
@@ -105,7 +107,7 @@ const contractMgmtData: ContractMgmtItem[] = [
     startDate: '2025-06-01',
     endDate: '2027-03-31',
     signDate: '2025-05-28',
-    status: '执行中',
+    status: '待审批',
     contractType: '系统建设与集成合同',
     attachments: [
       { name: '顺德医疗健康信息系统建设合同.pdf', url: '#ht006', size: 3650000, uploadedBy: '孙永秀', uploadDate: '2025-05-28', type: 'application/pdf' },
@@ -114,6 +116,7 @@ const contractMgmtData: ContractMgmtItem[] = [
   },
 ]
 
+// ================== 合同支付 ==================
 const paymentMgmtData: PaymentMgmtItem[] = [
   // XB2005-0037 合同支付
   {
@@ -153,7 +156,7 @@ const paymentMgmtData: PaymentMgmtItem[] = [
     amount: 2162500,
     payDate: '2025-11-30',
     payType: '进度款',
-    status: '待支付',
+    status: '一审通过',
     applicant: '集成商',
     remark: '系统上线并通过初验后支付25%',
   },
@@ -166,7 +169,7 @@ const paymentMgmtData: PaymentMgmtItem[] = [
     amount: 432500,
     payDate: '2026-11-30',
     payType: '质保金',
-    status: '待支付',
+    status: '待审批',
     applicant: '集成商',
     remark: '两年质保期满支付5%',
   },
@@ -194,7 +197,7 @@ const paymentMgmtData: PaymentMgmtItem[] = [
     amount: 2410000,
     payDate: '2025-05-15',
     payType: '进度款',
-    status: '已支付',
+    status: '已审批',
     applicant: '设备供应商',
     invoiceNo: 'INV-20250510-004',
     remark: '主要设备到货并安装完成支付50%',
@@ -208,7 +211,7 @@ const paymentMgmtData: PaymentMgmtItem[] = [
     amount: 723000,
     payDate: '2025-12-15',
     payType: '进度款',
-    status: '待支付',
+    status: '待审批',
     applicant: '设备供应商',
     remark: '系统验收通过后支付15%',
   },
@@ -236,7 +239,7 @@ const paymentMgmtData: PaymentMgmtItem[] = [
     amount: 6320000,
     payDate: '2025-07-10',
     payType: '进度款',
-    status: '待支付',
+    status: '待审批',
     applicant: '运营中心',
     remark: '云资源扩容及基础平台建设完成支付40%',
   },
@@ -264,7 +267,7 @@ const paymentMgmtData: PaymentMgmtItem[] = [
     amount: 1930000,
     payDate: '2025-02-20',
     payType: '进度款',
-    status: '已支付',
+    status: '一审通过',
     applicant: '科研院',
     invoiceNo: 'INV-20250218-007',
     remark: '三维建模及平台开发完成支付50%',
@@ -278,11 +281,61 @@ const paymentMgmtData: PaymentMgmtItem[] = [
     amount: 579000,
     payDate: '2025-08-30',
     payType: '结算款',
-    status: '待支付',
+    status: '待审批',
     applicant: '科研院',
     remark: '项目竣工验收完成支付15%',
   },
 ]
+
+// ================== 初始审批记录 ==================
+// 建设合同 - 初始审批记录映射（为状态为"一审通过""已审批"的记录提供历史审批）
+export const initialContractApprovalMap: Record<string, ApprovalRecord[]> = {
+  '1': [
+    { key: '1-r1', code: 'HT-2025-001-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '合同条款完整，附件齐全，同意通过一审。', date: '2025-03-10 14:30:00' },
+    { key: '1-r2', code: 'HT-2025-001-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '复核通过，合同签订流程完成。', date: '2025-03-11 10:00:00' },
+  ],
+  '2': [
+    { key: '2-r1', code: 'HT-2025-002-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '设备采购合同完整，供应商资质齐全，同意通过。', date: '2025-01-28 16:00:00' },
+    { key: '2-r2', code: 'HT-2025-002-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '终审通过，可进入执行阶段。', date: '2025-01-29 09:30:00' },
+  ],
+  '3': [
+    { key: '3-r1', code: 'HT-2025-003-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '合同金额大，条款已审核，技术附件齐全，同意通过一审。', date: '2025-01-08 17:00:00' },
+  ],
+}
+
+// 合同支付 - 初始审批记录映射
+export const initialPaymentApprovalMap: Record<string, ApprovalRecord[]> = {
+  '1': [
+    { key: 'p1-r1', code: 'PAY-HT-001-01-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '预付款申请资料齐全，符合合同约定。', date: '2025-03-20 10:00:00' },
+    { key: 'p1-r2', code: 'PAY-HT-001-01-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '终审通过，可办理支付。', date: '2025-03-22 09:00:00' },
+  ],
+  '2': [
+    { key: 'p2-r1', code: 'PAY-HT-001-02-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '进度款申请与合同进度一致，同意通过。', date: '2025-06-05 14:00:00' },
+    { key: 'p2-r2', code: 'PAY-HT-001-02-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '终审通过。', date: '2025-06-07 11:00:00' },
+  ],
+  '3': [
+    { key: 'p3-r1', code: 'PAY-HT-001-03-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '系统上线初验通过，25%进度款符合合同约定。', date: '2025-11-25 15:30:00' },
+  ],
+  '5': [
+    { key: 'p5-r1', code: 'PAY-HT-002-01-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '设备预付款申请齐全。', date: '2025-02-18 10:00:00' },
+    { key: 'p5-r2', code: 'PAY-HT-002-01-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '终审通过，办理支付。', date: '2025-02-19 09:00:00' },
+  ],
+  '6': [
+    { key: 'p6-r1', code: 'PAY-HT-002-02-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '主要设备已到货安装，50%进度款同意。', date: '2025-05-12 14:00:00' },
+    { key: 'p6-r2', code: 'PAY-HT-002-02-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '终审通过。', date: '2025-05-14 10:00:00' },
+  ],
+  '8': [
+    { key: 'p8-r1', code: 'PAY-HT-003-01-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '数字政府项目预付款申请完整。', date: '2025-02-03 15:00:00' },
+    { key: 'p8-r2', code: 'PAY-HT-003-01-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '终审通过。', date: '2025-02-04 09:30:00' },
+  ],
+  '10': [
+    { key: 'p10-r1', code: 'PAY-HT-004-01-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '潮州供水枢纽项目预付款同意。', date: '2024-08-25 14:00:00' },
+    { key: 'p10-r2', code: 'PAY-HT-004-01-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '终审通过。', date: '2024-08-26 10:00:00' },
+  ],
+  '11': [
+    { key: 'p11-r1', code: 'PAY-HT-004-02-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '三维建模及平台开发阶段完成，同意支付50%。', date: '2025-02-17 16:00:00' },
+  ],
+}
 
 export { contractMgmtData, paymentMgmtData }
 

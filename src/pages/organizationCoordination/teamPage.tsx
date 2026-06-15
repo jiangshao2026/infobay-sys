@@ -225,20 +225,22 @@ const ProjectRelationPanel: React.FC = () => {
       fixed: 'right' as const,
       render: (_: unknown, record: ProjectRelationItem) => (
         <Space size="small" wrap>
-          <Button type="link" icon={<EyeOutlined />} size="small" onClick={() => handleView(record)}>查看详情</Button>
-          <Button type="link" icon={<UserAddOutlined />} size="small" onClick={() => handleMaintain(record, '业主方')}>维护业主方</Button>
-          <Button type="link" icon={<UserAddOutlined />} size="small" onClick={() => handleMaintain(record, '承建方')}>维护承建方</Button>
-          <Button type="link" icon={<UserAddOutlined />} size="small" onClick={() => handleMaintain(record, '监理方')}>维护监理方</Button>
+          <Button type="link" icon={<EyeOutlined />} size="small" onClick={(e) => { e.stopPropagation(); handleView(record) }}>查看详情</Button>
+          <Button type="link" icon={<UserAddOutlined />} size="small" onClick={(e) => { e.stopPropagation(); handleMaintain(record, '业主方') }}>维护业主方</Button>
+          <Button type="link" icon={<UserAddOutlined />} size="small" onClick={(e) => { e.stopPropagation(); handleMaintain(record, '承建方') }}>维护承建方</Button>
+          <Button type="link" icon={<UserAddOutlined />} size="small" onClick={(e) => { e.stopPropagation(); handleMaintain(record, '监理方') }}>维护监理方</Button>
           <Button type="link" icon={<UserAddOutlined />} size="small" onClick={() => handleMaintain(record, '验收测评方')}>维护验收方</Button>
-          <Button type="link" icon={<UserAddOutlined />} size="small" onClick={() => handleMaintain(record, '安全测评方')}>维护安全方</Button>
-          <Popconfirm
-            title="确定删除此项目的关系人记录？"
-            onConfirm={() => handleDelete(record.key)}
-            okText="确定"
-            cancelText="取消"
-          >
-            <Button type="link" danger icon={<DeleteOutlined />} size="small">删除</Button>
-          </Popconfirm>
+          <Button type="link" icon={<UserAddOutlined />} size="small" onClick={(e) => { e.stopPropagation(); handleMaintain(record, '安全测评方') }}>维护安全方</Button>
+          <span onClick={(e) => e.stopPropagation()}>
+            <Popconfirm
+              title="确定删除此项目的关系人记录？"
+              onConfirm={() => handleDelete(record.key)}
+              okText="确定"
+              cancelText="取消"
+            >
+              <Button type="link" danger icon={<DeleteOutlined />} size="small">删除</Button>
+            </Popconfirm>
+          </span>
         </Space>
       ),
     },
@@ -395,7 +397,11 @@ const ProjectRelationPanel: React.FC = () => {
           scroll={{ x: 1800 }}
           rowKey="key"
           onRow={(record: ProjectRelationItem) => ({
-            onClick: () => handleView(record),
+            onClick: (e) => {
+              const target = e.target as HTMLElement
+              if (target.closest('button') || target.closest('.ant-popover') || target.closest('.ant-popconfirm')) return
+              handleView(record)
+            },
             style: { cursor: 'pointer' },
           })}
         />

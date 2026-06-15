@@ -1,4 +1,4 @@
-import type { SafetyCheckItem, DocumentAttachment } from '../types/projectManagement'
+import type { SafetyCheckItem, DocumentAttachment, ApprovalRecord } from '../types/projectManagement'
 
 const att = (seed: string): DocumentAttachment[] => [
   {
@@ -24,7 +24,7 @@ const initialData: SafetyCheckItem[] = [
     issues: ['灭火器检查记录不完整', 'UPS状态指示灯异常'],
     level: '中',
     reviewer: '韦江腾',
-    status: '已通过',
+    status: '已审批',
     attachments: att('sc1'),
   },
   {
@@ -38,7 +38,7 @@ const initialData: SafetyCheckItem[] = [
     issues: ['部分设备散热不良'],
     level: '低',
     reviewer: '韦江腾',
-    status: '已通过',
+    status: '已审批',
     attachments: att('sc2'),
   },
   {
@@ -52,7 +52,7 @@ const initialData: SafetyCheckItem[] = [
     issues: ['防雷接地网锈蚀需清理'],
     level: '高',
     reviewer: '黄志强',
-    status: '一审中',
+    status: '已审批',
     attachments: att('sc3'),
   },
   {
@@ -66,7 +66,7 @@ const initialData: SafetyCheckItem[] = [
     issues: [],
     level: '低',
     reviewer: '张建华',
-    status: '已通过',
+    status: '已审批',
     attachments: att('sc4'),
   },
   {
@@ -84,5 +84,26 @@ const initialData: SafetyCheckItem[] = [
     attachments: att('sc5'),
   },
 ]
+
+// 初始审批记录
+// 一审由监理工程师滕海燕审批，二审由总监理工程师韦江腾审批
+export const initialSafetyApprovalMap: Record<string, ApprovalRecord[]> = {
+  'sc-1': [
+    { key: 'sc-1-r1', code: 'SC-2025-001-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '检查内容完整，整改措施到位，一审通过。', date: '2025-05-12 16:00:00' },
+    { key: 'sc-1-r2', code: 'SC-2025-001-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '终审通过。', date: '2025-05-13 10:00:00' },
+  ],
+  'sc-2': [
+    { key: 'sc-2-r1', code: 'SC-2025-002-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '上报处置方案合理，一审通过。', date: '2025-06-08 17:00:00' },
+    { key: 'sc-2-r2', code: 'SC-2025-002-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '终审通过。', date: '2025-06-09 09:00:00' },
+  ],
+  'sc-3': [
+    { key: 'sc-3-r1', code: 'SC-2025-003-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '检查方案可行，一审通过。', date: '2025-06-22 15:00:00' },
+    { key: 'sc-3-r2', code: 'SC-2025-003-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '终审通过，同意执行。', date: '2025-06-23 10:00:00' },
+  ],
+  'sc-4': [
+    { key: 'sc-4-r1', code: 'SC-2025-004-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '检查细致，一审通过。', date: '2025-07-02 14:00:00' },
+    { key: 'sc-4-r2', code: 'SC-2025-004-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '终审通过。', date: '2025-07-03 09:00:00' },
+  ],
+}
 
 export default initialData

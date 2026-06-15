@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 
-const STORAGE_PREFIX = 'xb-demo-v2-' // 数据结构变更时升版，自动清旧缓存
+const STORAGE_PREFIX = 'xb-demo-v4-' // 数据结构变更时升版，自动清旧缓存
 
 /**
  * 通用持久化 useState — 用法同 useState，自动同步 localStorage

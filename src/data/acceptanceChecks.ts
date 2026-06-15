@@ -1,4 +1,4 @@
-import type { AcceptanceCheckItem, DocumentAttachment } from '../types/projectManagement'
+import type { AcceptanceCheckItem, DocumentAttachment, ApprovalRecord } from '../types/projectManagement'
 
 const att = (seed: string): DocumentAttachment[] => [
   {
@@ -25,7 +25,7 @@ const initialData: AcceptanceCheckItem[] = [
     participants: ['韦江腾', '设备供应商代表', '业主方代表'],
     issues: [],
     result: '合格',
-    status: '已完成',
+    status: '已审批',
     attachments: att('ac1'),
   },
   {
@@ -40,7 +40,7 @@ const initialData: AcceptanceCheckItem[] = [
     participants: ['韦江腾', '视频会议供应商', '业主方代表'],
     issues: [],
     result: '合格',
-    status: '已完成',
+    status: '已审批',
     attachments: att('ac2'),
   },
   {
@@ -55,7 +55,7 @@ const initialData: AcceptanceCheckItem[] = [
     participants: ['韦江腾', '各分项供应商代表', '业主方代表'],
     issues: ['卫星定位远海丢包率偏高'],
     result: '有条件合格',
-    status: '进行中',
+    status: '待审批',
     attachments: att('ac3'),
   },
   {
@@ -70,7 +70,7 @@ const initialData: AcceptanceCheckItem[] = [
     participants: ['韦江腾', '承建方代表', '业主方代表', '外部专家3人'],
     issues: ['首页加载性能需优化'],
     result: '待复查',
-    status: '待安排',
+    status: '待审批',
     attachments: att('ac4'),
   },
   {
@@ -85,9 +85,40 @@ const initialData: AcceptanceCheckItem[] = [
     participants: ['张建华', '承建方代表', '业主方代表', '外部专家5人'],
     issues: [],
     result: '合格',
-    status: '待验收',
+    status: '待审批',
     attachments: att('ac5'),
   },
+  {
+    key: 'ac-6',
+    code: 'AC-2025-006',
+    projectCode: 'XB2005-0189',
+    title: '韩江流域潮州供水枢纽数字孪生平台竣工验收',
+    type: '竣工验收',
+    checkDate: '2025-08-20',
+    location: '潮州市湘桥区 - 供水枢纽管理处',
+    inspector: '吴国栋',
+    participants: ['吴国栋', '承建方代表', '业主方代表', '外部专家5人'],
+    issues: [],
+    result: '合格',
+    status: '已审批',
+    attachments: att('ac6'),
+  },
 ]
+
+// 初始审批记录
+export const initialAcceptanceApprovalMap: Record<string, ApprovalRecord[]> = {
+  'ac-1': [
+    { key: 'ac-1-r1', code: 'AC-2025-001-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '验收方案完整，测试用例覆盖充分，一审通过。', date: '2025-05-08 16:00:00' },
+    { key: 'ac-1-r2', code: 'AC-2025-001-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '终审通过，同意验收。', date: '2025-05-09 10:00:00' },
+  ],
+  'ac-2': [
+    { key: 'ac-2-r1', code: 'AC-2025-002-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '数据迁移方案合理，一审通过。', date: '2025-06-15 14:00:00' },
+    { key: 'ac-2-r2', code: 'AC-2025-002-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '终审通过。', date: '2025-06-16 09:00:00' },
+  ],
+  'ac-6': [
+    { key: 'ac-6-r1', code: 'AC-2025-006-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '数字孪生平台功能与性能均满足要求，一审通过。', date: '2025-08-25 10:00:00' },
+    { key: 'ac-6-r2', code: 'AC-2025-006-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '终审通过，同意竣工验收。', date: '2025-08-28 09:00:00' },
+  ],
+}
 
 export default initialData

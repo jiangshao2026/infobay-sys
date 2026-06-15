@@ -17,7 +17,7 @@ const CHAIN = APPROVAL_CHAINS.DOCUMENT
 
 const DOC_TYPE_OPTIONS: IMDocType[] = ['实施方案', '设计方案审核', '试运行报告', '支付申请附件', '其他']
 const UPLOADER_OPTIONS: IMDocUploader[] = ['承建单位', '监理工程师']
-const STATUS_OPTIONS: IMDocStatus[] = ['待审批', '审批中', '已发布', '已驳回']
+const STATUS_OPTIONS: IMDocStatus[] = ['待审批', '一审通过', '已发布', '已驳回']
 
 const DocumentPanel: React.FC = () => {
   const [list, setList] = usePersistedState<DocMgmtItem[]>('info-doc', initialData)
@@ -131,8 +131,11 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
       render: (_: unknown, record: InfoDocumentItem) => (
         <Space size="small" style={{ display: 'flex', flexWrap: 'wrap' }}>
           <Button type="link" icon={<EyeOutlined />} size="small" onClick={() => handleView(record)}>查看详情</Button>
-          {record.status !== '已发布' && record.status !== '已驳回' && (
-            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>{record.status === '审批中' ? '审批' : '发起审批'}</Button>
+          {(record.status === '待审批' && (currentUser.role === '监理工程师' || currentUser.role === '总监理工程师')) && (
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>审批</Button>
+          )}
+          {record.status === '一审通过' && currentUser.role === '总监理工程师' && (
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>审批</Button>
           )}
           <Button type="link" icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)}>编辑</Button>
           <Popconfirm
@@ -294,12 +297,12 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
       setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '已驳回' as IMDocStatus, currentLevel: nextLevel } : item); return r })
       message.success('已驳回')
     } else {
-      // 通过：若达到 2 级终态 -> 已发布；否则 -> 审批中
+      // 通过：若达到 2 级终态 -> 已发布；否则 -> 一审通过
       const isFinal = nextLevel >= CHAIN.levels.length
       setList(prev => { const r = prev.map(item => item.key === key
-        ? { ...item, status: (isFinal ? '已发布' : '审批中') as IMDocStatus, currentLevel: nextLevel }
+        ? { ...item, status: (isFinal ? '已发布' : '一审通过') as IMDocStatus, currentLevel: nextLevel }
         : item); return r })
-      message.success(isFinal ? '审批完成，文档已发布' : '已通过一级审批，进入下一级')
+      message.success(isFinal ? '审批完成，文档已发布' : '一审通过，等待总监理工程师终审')
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)
@@ -351,8 +354,8 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
       paragraphs.push(`本项目文档经监理工程师审核及总监理工程师审批，内容完备、符合监理规范要求，同意发布。`)
     } else if (item.status === '已驳回') {
       paragraphs.push(`本项目文档在审批过程中被驳回，请承建单位按审批意见修改后重新提交。`)
-    } else if (item.status === '审批中') {
-      paragraphs.push(`本项目文档尚处于审批流程中，请按进度完成后续审批。`)
+    } else if (item.status === '一审通过') {
+      paragraphs.push(`本项目已通过一审，尚处于审批流程中，请总监理工程师完成终审。`)
     } else {
       paragraphs.push(`本项目文档待发起审批。`)
     }
@@ -556,8 +559,8 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
               <Space>
                 <Button icon={<DownloadOutlined />} onClick={() => handleExportOpinion(currentItem)}>导出监理审核意见</Button>
                 <Button icon={<PrinterOutlined />} onClick={() => handlePrintOpinion(currentItem)}>打印监理审核意见</Button>
-                {currentItem.status === '待审批' && (
-                  <Button type="primary" icon={<CheckCircleOutlined />} onClick={() => { setIsDetailModalVisible(false); handleReview(currentItem) }}>{record.status === '审批中' ? '审批' : '发起审批'}</Button>
+                {(currentUser.role === '监理工程师' || currentUser.role === '总监理工程师') && (
+                  <Button type="primary" icon={<CheckCircleOutlined />} onClick={() => { setIsDetailModalVisible(false); handleReview(currentItem) }}>提交审批</Button>
                 )}
               </Space>
               <Divider style={{ margin: '12px 0' }} />

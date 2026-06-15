@@ -1,6 +1,6 @@
 import { Card, Table, Tag, Space, Button, Modal, Form, Input, Select, message, Popconfirm } from 'antd'
 import { UserOutlined, PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, EyeOutlined } from '@ant-design/icons'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { usePersistedState } from '../../hooks/usePersistedState'
 import { DEMO_USERS, type DemoUser } from '../../context/UserContext'
 import { CompactTableCssOnly } from '../../components/DetailModal'
@@ -13,7 +13,21 @@ const roleColorMap: Record<string, string> = {
 }
 
 function UserPage() {
-  const [list, setList] = usePersistedState<DemoUser[]>('sys-user', DEMO_USERS)
+  // 用 DEMO_USERS 初始化；若演示数据有新增，自动补到列表头部，保证新用户在管理页可见
+  const initialList = useMemo(() => {
+    const inStorage = (() => {
+      try {
+        const raw = localStorage.getItem('xb-demo-v4-sys-user')
+        if (raw) return JSON.parse(raw) as DemoUser[]
+      } catch (_) {}
+      return null
+    })()
+    const base = inStorage && inStorage.length > 0 ? inStorage : DEMO_USERS
+    const existingKeys = new Set(base.map(u => u.key))
+    const missingUsers = DEMO_USERS.filter(u => !existingKeys.has(u.key))
+    return [...missingUsers, ...base]
+  }, [])
+  const [list, setList] = usePersistedState<DemoUser[]>('sys-user', initialList)
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [isViewVisible, setIsViewVisible] = useState(false)
   const [currentItem, setCurrentItem] = useState<DemoUser | null>(null)

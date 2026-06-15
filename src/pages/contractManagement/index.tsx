@@ -1,26 +1,32 @@
-import { Card, Table, Button, Tag, Input, Select, DatePicker, Modal, Form, message, Space, Statistic, Row, Col } from 'antd'
-import { PlusOutlined, SearchOutlined, EditOutlined, EyeOutlined } from '@ant-design/icons'
+import { Card, Table, Button, Tag, Input, Select, DatePicker, Modal, Form, message, Space, Row, Col } from 'antd'
+import { PlusOutlined, SearchOutlined, EditOutlined, EyeOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
-import { contractMgmtData, paymentMgmtData } from '../../data/contractMgmt'
+import { contractMgmtData, paymentMgmtData, initialContractApprovalMap } from '../../data/contractMgmt'
 import type {
   ContractMgmtItem,
   ContractMgmtStatus,
   ContractMgmtSearchParams,
   DocumentAttachment,
+  ApprovalRecord,
 } from '../../types/projectManagement'
 import { formatCurrency, parseWanyuan } from '../../utils/format'
 import { DetailModal, descItem, descText, descTag, statusColor, descAttachments, CompactTableCssOnly } from '../../components/DetailModal'
 import { DocumentUploader } from '../../components/DocumentUploader'
 import AttachmentPreview from '../../components/AttachmentPreview'
+import { ReviewModal, ReviewTimeline, getApprovalRecords, APPROVAL_CHAINS } from '../../components/ReviewFlow'
+import { useUser } from '../../context/UserContext'
 
 import { usePersistedState } from '../../hooks/usePersistedState'
 const { Option } = Select
 
 function ContractManagement() {
+  const { currentUser } = useUser()
   const [contractList, setContractList] = usePersistedState<ContractMgmtItem[]>('contractmgmt-main', contractMgmtData)
+  const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('contractmgmt-main-approval', initialContractApprovalMap)
+  const [isReviewModalVisible, setIsReviewModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
   const [currentItem, setCurrentItem] = useState<ContractMgmtItem | null>(null)
   const [isModalVisible, setIsModalVisible] = useState(false)
@@ -30,12 +36,6 @@ function ContractManagement() {
   const [form] = Form.useForm()
   const [editForm] = Form.useForm()
   const [searchForm] = Form.useForm()
-
-  const totalAmount = contractList.reduce((sum, c) => sum + c.amount, 0)
-  const activeCount = contractList.filter(c => c.status === '执行中').length
-  const pendingPaymentAmount = paymentMgmtData
-    .filter(p => p.status === '待支付')
-    .reduce((sum, p) => sum + p.amount, 0)
 
   const handleSearch = (values: ContractMgmtSearchParams) => {
     const filtered = contractList.filter(item => {
@@ -70,12 +70,44 @@ function ContractManagement() {
     setIsDetailModalVisible(true)
   }
 
+  const handleReview = (record: ContractMgmtItem) => {
+    setCurrentItem(record)
+    setIsReviewModalVisible(true)
+  }
+
+  const handleReviewSubmit = (payload: { status: '通过' | '驳回'; comment: string; reviewer: string }) => {
+    if (!currentItem) return
+    const key = currentItem.key
+    const existingRecords = approvalMap[key] || []
+    const nextLevel = currentItem.status === '一审通过' ? 2 : (existingRecords.length + 1)
+    const newRecord: ApprovalRecord = {
+      key: `${key}-r${nextLevel}-${Date.now()}`,
+      code: `${currentItem.code}-R${nextLevel}`,
+      level: nextLevel,
+      reviewer: payload.reviewer,
+      comment: payload.comment,
+      status: payload.status,
+      date: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+    }
+    setApprovalMap(prev => ({ ...prev, [key]: [...existingRecords, newRecord] }))
+    if (payload.status === '驳回') {
+      setContractList(prev => prev.map(item => item.key === key ? { ...item, status: '待审批' as ContractMgmtStatus } : item))
+      message.success('已驳回，返回待审批')
+    } else {
+      const newStatus: ContractMgmtStatus = currentItem.status === '待审批' ? '一审通过' : '已审批'
+      setContractList(prev => prev.map(item => item.key === key ? { ...item, status: newStatus } : item))
+      message.success(newStatus === '已审批' ? '终审已通过' : '一审通过，等待总监理工程师终审')
+    }
+    setIsReviewModalVisible(false)
+    setCurrentItem(null)
+  }
+
   const showModal = () => {
     form.resetFields()
     const seqNum = String(contractMgmtData.length + 1).padStart(3, '0')
     form.setFieldsValue({
       code: `HT-${dayjs().format('YYYY')}-${seqNum}`,
-      status: '执行中',
+      status: '待审批',
     })
     setIsModalVisible(true)
   }
@@ -275,7 +307,8 @@ function ContractManagement() {
       key: 'action',
       width: 140,
       fixed: 'right' as const,
-      render: (_: unknown, record: ContractMgmtItem) => (
+      render: (_: unknown, record: ContractMgmtItem) => {
+        return (
         <Space size="small">
           <Button type="link" icon={<EyeOutlined />} size="small" onClick={() => handleView(record)}>
             查看
@@ -283,8 +316,18 @@ function ContractManagement() {
           <Button type="link" icon={<EditOutlined />} size="small" onClick={() => showEditModal(record)}>
             编辑
           </Button>
+          {record.status === '待审批' && (currentUser.role === '监理工程师' || currentUser.role === '总监理工程师') && (
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>
+              审批
+            </Button>
+          )}
+          {record.status === '一审通过' && currentUser.role === '总监理工程师' && (
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>
+              审批
+            </Button>
+          )}
         </Space>
-      ),
+      )},
     },
   ]
 
@@ -298,29 +341,6 @@ function ContractManagement() {
           新增合同
         </Button>
       </div>
-
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={6}>
-          <Card>
-            <Statistic title="合同总数" value={contractMgmtData.length} suffix="份" />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic title="合同总金额" value={formatCurrency(totalAmount)} />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic title="执行中合同" value={activeCount} suffix="份" valueStyle={{ color: '#1890ff' }} />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic title="待支付金额" value={formatCurrency(pendingPaymentAmount)} valueStyle={{ color: '#fa8c16' }} />
-          </Card>
-        </Col>
-      </Row>
 
       <Card>
         <Form
@@ -343,11 +363,11 @@ function ContractManagement() {
           </Form.Item>
           <Form.Item name="status">
             <Select placeholder="选择状态" style={{ width: 140 }} allowClear>
-              <Option value="待签订">待签订</Option>
+              <Option value="待审批">待审批</Option>
+              <Option value="一审通过">一审通过</Option>
+              <Option value="已审批">已审批</Option>
               <Option value="执行中">执行中</Option>
-              <Option value="即将到期">即将到期</Option>
-              <Option value="已完成">已完成</Option>
-              <Option value="已中止">已中止</Option>
+              <Option value="已驳回">已驳回</Option>
             </Select>
           </Form.Item>
           <Form.Item>
@@ -375,24 +395,35 @@ function ContractManagement() {
         title="建设合同详情"
         width={760}
         onClose={() => setIsDetailModalVisible(false)}
-        items={
-          currentItem
-            ? [
-                descItem('合同编号', descText(currentItem.code)),
-                descItem('合同名称', descText(currentItem.name)),
-                descItem('关联项目', descText(getProjectNameByCode(currentItem.projectCode))),
-                descItem('甲方', descText(currentItem.partyA)),
-                descItem('乙方', descText(currentItem.partyB)),
-                descItem('合同金额', descText(formatCurrency(currentItem.amount))),
-                descItem('签订日期', descText(currentItem.signDate)),
-                descItem('开始日期', descText(currentItem.startDate)),
-                descItem('结束日期', descText(currentItem.endDate)),
-                descItem('状态', descTag(currentItem.status, statusColor)),
-                descItem('合同类型', descText(currentItem.contractType)),
-                descItem('合同附件', <AttachmentPreview attachments={currentItem.attachments as any} />),
-              ]
-            : []
-        }
+        items={(() => {
+          if (!currentItem) return []
+          const items = [
+            descItem('合同编号', descText(currentItem.code)),
+            descItem('合同名称', descText(currentItem.name)),
+            descItem('关联项目', descText(getProjectNameByCode(currentItem.projectCode))),
+            descItem('甲方', descText(currentItem.partyA)),
+            descItem('乙方', descText(currentItem.partyB)),
+            descItem('合同金额', descText(formatCurrency(currentItem.amount))),
+            descItem('签订日期', descText(currentItem.signDate)),
+            descItem('开始日期', descText(currentItem.startDate)),
+            descItem('结束日期', descText(currentItem.endDate)),
+            descItem('状态', descTag(currentItem.status, statusColor)),
+            descItem('合同类型', descText(currentItem.contractType)),
+            descItem('合同附件', <AttachmentPreview attachments={currentItem.attachments as any} />),
+          ]
+          // 审批记录时间线
+          items.push(
+            descItem(
+              '审批记录',
+              <ReviewTimeline
+                records={getApprovalRecords(currentItem, approvalMap, 'PROJECT')}
+                status={currentItem.status}
+                levels={APPROVAL_CHAINS.PROJECT.levels}
+              />,
+            ),
+          )
+          return items
+        })()}
       />
 
       <Modal
@@ -473,11 +504,11 @@ function ContractManagement() {
             <Col span={12}>
               <Form.Item name="status" label="状态" rules={[{ required: true, message: '请选择状态' }]}>
                 <Select placeholder="请选择状态">
-                  <Option value="待签订">待签订</Option>
+                  <Option value="待审批">待审批</Option>
+                  <Option value="一审通过">一审通过</Option>
+                  <Option value="已审批">已审批</Option>
                   <Option value="执行中">执行中</Option>
-                  <Option value="即将到期">即将到期</Option>
-                  <Option value="已完成">已完成</Option>
-                  <Option value="已中止">已中止</Option>
+                  <Option value="已驳回">已驳回</Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -564,11 +595,11 @@ function ContractManagement() {
             <Col span={12}>
               <Form.Item name="status" label="状态" rules={[{ required: true }]}>
                 <Select>
-                  <Option value="待签订">待签订</Option>
+                  <Option value="待审批">待审批</Option>
+                  <Option value="一审通过">一审通过</Option>
+                  <Option value="已审批">已审批</Option>
                   <Option value="执行中">执行中</Option>
-                  <Option value="即将到期">即将到期</Option>
-                  <Option value="已完成">已完成</Option>
-                  <Option value="已中止">已中止</Option>
+                  <Option value="已驳回">已驳回</Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -586,6 +617,16 @@ function ContractManagement() {
           </Form.Item>
         </Form>
       </Modal>
+
+      <ReviewModal
+        open={isReviewModalVisible}
+        title="合同审批"
+        onClose={() => { setIsReviewModalVisible(false); setCurrentItem(null) }}
+        onSubmit={handleReviewSubmit}
+        reviewerOptions={APPROVAL_CHAINS.PROJECT.reviewerOptions}
+        currentUser={currentUser.name}
+        okText="提交审批"
+      />
     </div>
   )
 }

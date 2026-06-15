@@ -52,7 +52,10 @@ export const statusColor = (status: string): string => {
     case '执行中':
       return 'blue'
     case '启动阶段':
-    case '待启动':
+    case '未启动':
+      return 'default'
+    case '已启动':
+      return 'blue'
     case '整改中':
     case '编制中':
       return 'cyan'
@@ -75,6 +78,7 @@ export const statusColor = (status: string): string => {
     case '已通过':
     case '已收款':
     case '已完善':
+    case '已验收':
       return 'green'
     // —— 异常/驳回类 ——
     case '已作废':

@@ -127,6 +127,32 @@ const safetyData: SafetyItem[] = [
     handler: '冯志华',
     deadline: '2025-06-15',
   },
+  {
+    key: '10',
+    code: 'SAFE-2025-010',
+    projectCode: 'XB2005-0301',
+    type: '数据安全',
+    description: '排水管网地理信息系统涉及市政敏感管线数据，需完善数据分级保护和访问审计机制',
+    location: '番禺区水务局数据机房',
+    discoverDate: '2025-05-18',
+    riskLevel: '较高',
+    status: '处理中',
+    handler: '梁永康',
+    deadline: '2025-06-20',
+  },
+  {
+    key: '11',
+    code: 'SAFE-2025-011',
+    projectCode: 'XB2005-0123',
+    type: '数据安全',
+    description: '民政系统涉及低保人员、孤儿、老年人等敏感个人信息，需加强数据脱敏和权限管理',
+    location: '广州市民政局信息中心',
+    discoverDate: '2025-04-30',
+    riskLevel: '较高',
+    status: '处理中',
+    handler: '滕海燕',
+    deadline: '2025-05-20',
+  },
 ]
 
 export { safetyData }

@@ -112,7 +112,6 @@ function ProjectOverview() {
               <Descriptions.Item label="项目类型">{project.type}</Descriptions.Item>
               <Descriptions.Item label="项目规模"><Tag color={scaleColor(project.scale)}>{project.scale}</Tag></Descriptions.Item>
               <Descriptions.Item label="状态"><Tag color={statusColor(project.status)}>{project.status}</Tag></Descriptions.Item>
-              <Descriptions.Item label="审批状态"><Tag color={statusColor(project.approvalStatus)}>{project.approvalStatus}</Tag></Descriptions.Item>
               <Descriptions.Item label="总投资">{formatCurrency(project.investment)}</Descriptions.Item>
               <Descriptions.Item label="项目经理">{project.manager}</Descriptions.Item>
               <Descriptions.Item label="建设单位">{project.owner || '-'}</Descriptions.Item>

@@ -4,7 +4,7 @@ import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import { usePersistedState } from '../../hooks/usePersistedState'
 import { useUser } from '../../context/UserContext'
-import initialData from '../../data/changeRequests'
+import initialData, { initialRequestApprovalMap } from '../../data/changeRequests'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import type { ChangeRequestItem, CRType, CRStatus, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
 import { DetailModal, descItem, descText, CompactTableCssOnly } from '../../components/DetailModal'
@@ -19,18 +19,10 @@ const changeStatusColor = (status: string): string => {
   switch (status) {
     case '草稿':
       return 'default'
-    case '待一审':
+    case '待审批':
       return 'gold'
-    case '一审中':
-      return 'cyan'
     case '一审通过':
-      return 'blue'
-    case '待二审':
-      return 'purple'
-    case '二审中':
-      return 'magenta'
-    case '二审通过':
-      return 'geekblue'
+      return 'cyan'
     case '已审批':
       return 'green'
     case '已驳回':
@@ -55,22 +47,13 @@ const priorityColor = (priority: string): string => {
   }
 }
 
-const nextStatusMap: Record<string, CRStatus> = {
-  '草稿': '待一审',
-  '待一审': '一审中',
-  '一审中': '一审通过',
-  '一审通过': '待二审',
-  '待二审': '二审中',
-  '二审中': '二审通过',
-  '二审通过': '已审批',
-}
 
 interface RequestPageProps {}
 
 const RequestPanel: React.FC<RequestPageProps> = () => {
   const [list, setList] = usePersistedState<ChangeRequestItem[]>('change-request', initialData)
   const { currentUser } = useUser()
-const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('changeControl-requestPage-approval', {})
+const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('changeControl-requestPage-approval', initialRequestApprovalMap)
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -206,8 +189,11 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
         <Space size="small" style={{ display: 'flex', flexWrap: 'wrap' }}>
           <Button type="link" icon={<EyeOutlined />} size="small" onClick={() => handleView(record)}>查看</Button>
           <Button type="link" icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)}>编辑</Button>
-          {record.status !== '已审批' && record.status !== '已执行' && record.status !== '已驳回' && (
-            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>{record.status === '审批中' ? '审批' : '发起审批'}</Button>
+          {(record.status === '待审批' && (currentUser.role === '监理工程师' || currentUser.role === '总监理工程师')) && (
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>审批</Button>
+          )}
+          {record.status === '一审通过' && currentUser.role === '总监理工程师' && (
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>审批</Button>
           )}
           <Popconfirm
             title="确定删除此变更申请？"
@@ -269,23 +255,9 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
     priority: values.priority as '高' | '中' | '低',
     status: values.status as CRStatus,
     attachments: values.attachments || existingAttachments,
-    currentLevel: values.status === '草稿' ? 0 : getLevelFromStatus(values.status),
+    currentLevel: values.status === '草稿' ? 0 : values.status === '待审批' ? 0 : 1,
   })
 
-  const getLevelFromStatus = (status: string): number => {
-    const levelMap: Record<string, number> = {
-      '待一审': 1,
-      '一审中': 1,
-      '一审通过': 1,
-      '待二审': 2,
-      '二审中': 2,
-      '二审通过': 2,
-      '已审批': 3,
-      '已驳回': 1,
-      '已执行': 3,
-    }
-    return levelMap[status] || 0
-  }
 
   const handleAddOk = () => {
     addForm.validateFields().then(values => {
@@ -355,11 +327,12 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
     if (!currentItem) return
     const key = currentItem.key
     const existingRecords = approvalMap[key] || []
-    const currentLevel = currentItem.currentLevel || getLevelFromStatus(currentItem.status)
+    const nextLevel = currentItem.status === '一审通过' ? 2 : (existingRecords.length + 1)
+
     const newRecord: ApprovalRecord = {
-      key: `${key}-${currentLevel}`,
-      code: `${currentItem.code}-R${currentLevel}`,
-      level: currentLevel,
+      key: `${key}-r${nextLevel}-${Date.now()}`,
+      code: `${currentItem.code}-R${nextLevel}`,
+      level: nextLevel,
       reviewer: payload.reviewer,
       comment: payload.comment,
       status: payload.status,
@@ -368,15 +341,12 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
     setApprovalMap(prev => ({ ...prev, [key]: [...existingRecords, newRecord] }))
 
     if (payload.status === '驳回') {
-      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '已驳回' as CRStatus } : item); return r })
-      message.success('已驳回')
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '待审批' as CRStatus } : item); return r })
+      message.success('已驳回，返回待审批')
     } else {
-      const nextStatus = nextStatusMap[currentItem.status] || '已审批'
-      const isLast = nextStatus === '已审批'
-      setList(prev => { const r = prev.map(item =>
-        item.key === key ? { ...item, status: nextStatus, currentLevel: getLevelFromStatus(nextStatus) } : item
-      ); return r })
-      message.success(isLast ? '审批已通过' : '审批已提交至下一级')
+      const newStatus: CRStatus = currentItem.status === '待审批' ? '一审通过' : '已审批'
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: newStatus, currentLevel: nextLevel } : item); return r })
+      message.success(newStatus === '已审批' ? '终审已通过' : '一审通过，等待总监理工程师终审')
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)
@@ -451,12 +421,8 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
       <Form.Item name="status" label="状态" rules={[{ required: true, message: '请选择状态' }]}>
         <Select placeholder="请选择状态">
           <Option value="草稿">草稿</Option>
-          <Option value="待一审">待一审</Option>
-          <Option value="一审中">一审中</Option>
+          <Option value="待审批">待审批</Option>
           <Option value="一审通过">一审通过</Option>
-          <Option value="待二审">待二审</Option>
-          <Option value="二审中">二审中</Option>
-          <Option value="二审通过">二审通过</Option>
           <Option value="已审批">已审批</Option>
           <Option value="已驳回">已驳回</Option>
           <Option value="已执行">已执行</Option>
@@ -484,13 +450,8 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
           </Form.Item>
           <Form.Item name="status">
             <Select placeholder="状态" style={{ width: 130 }} allowClear>
-              <Option value="草稿">草稿</Option>
-              <Option value="待一审">待一审</Option>
-              <Option value="一审中">一审中</Option>
+              <Option value="待审批">待审批</Option>
               <Option value="一审通过">一审通过</Option>
-              <Option value="待二审">待二审</Option>
-              <Option value="二审中">二审中</Option>
-              <Option value="二审通过">二审通过</Option>
               <Option value="已审批">已审批</Option>
               <Option value="已驳回">已驳回</Option>
               <Option value="已执行">已执行</Option>

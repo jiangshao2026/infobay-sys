@@ -1,4 +1,4 @@
-import type { SchedulePlanItem, DocumentAttachment } from '../types/projectManagement'
+import type { SchedulePlanItem, DocumentAttachment, ApprovalRecord } from '../types/projectManagement'
 
 const att = (seed: string): DocumentAttachment[] => [
   {
@@ -36,7 +36,7 @@ const initialData: SchedulePlanItem[] = [
     planEnd: '2025-08-31',
     responsible: '滕海燕',
     milestones: ['架构评审', '数据库分库分表设计', '缓存方案评审'],
-    status: '待审批',
+    status: '一审通过',
     attachments: att('sp2'),
   },
   {
@@ -62,7 +62,7 @@ const initialData: SchedulePlanItem[] = [
     planEnd: '2025-09-30',
     responsible: '黄志强',
     milestones: ['需求调研', '原型确认', '需求评审'],
-    status: '已驳回',
+    status: '待审批',
     attachments: att('sp4'),
   },
   {
@@ -79,5 +79,19 @@ const initialData: SchedulePlanItem[] = [
     attachments: att('sp5'),
   },
 ]
+
+export const initialPlanApprovalMap: Record<string, ApprovalRecord[]> = {
+  'sp-1': [
+    { key: 'sp-1-r1', code: 'SP-2025-001-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '计划内容完整，时间节点合理，一审通过。', date: '2025-04-01 15:00:00' },
+    { key: 'sp-1-r2', code: 'SP-2025-001-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '终审通过，按计划执行。', date: '2025-04-02 10:00:00' },
+  ],
+  'sp-2': [
+    { key: 'sp-2-r1', code: 'SP-2025-002-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '架构评审方案可行，同意通过。', date: '2025-05-02 16:00:00' },
+  ],
+  'sp-3': [
+    { key: 'sp-3-r1', code: 'SP-2025-003-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '部署计划详实，一审通过。', date: '2025-02-16 14:00:00' },
+    { key: 'sp-3-r2', code: 'SP-2025-003-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '终审通过，准予执行。', date: '2025-02-17 09:00:00' },
+  ],
+}
 
 export default initialData

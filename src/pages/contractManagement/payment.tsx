@@ -1,10 +1,10 @@
-import { Card, Table, Button, Tag, Input, InputNumber, Select, DatePicker, Modal, Form, message, Space, Statistic, Row, Col, Divider } from 'antd'
-import { PlusOutlined, SearchOutlined, EditOutlined, EyeOutlined, DeleteOutlined, SafetyCertificateOutlined, PrinterOutlined, DownloadOutlined } from '@ant-design/icons'
+import { Card, Table, Button, Tag, Input, InputNumber, Select, DatePicker, Modal, Form, message, Space, Row, Col, Divider } from 'antd'
+import { PlusOutlined, SearchOutlined, EditOutlined, EyeOutlined, DeleteOutlined, SafetyCertificateOutlined, PrinterOutlined, DownloadOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 
 import { getProjectNameByCode } from '../../data/projects'
-import { contractMgmtData, paymentMgmtData } from '../../data/contractMgmt'
+import { contractMgmtData, paymentMgmtData, initialPaymentApprovalMap } from '../../data/contractMgmt'
 import type {
   PaymentMgmtItem,
   PaymentMgmtStatus,
@@ -26,11 +26,13 @@ import {
 } from '../../components/ReviewFlow'
 
 import { usePersistedState } from '../../hooks/usePersistedState'
+import { useUser } from '../../context/UserContext'
 const { Option } = Select
 
 function PaymentManagement() {
+  const { currentUser } = useUser()
   const [paymentList, setPaymentList] = usePersistedState<PaymentMgmtItem[]>('contractmgmt-pay', paymentMgmtData)
-const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('contractManagement-payment-approval', {})
+  const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('contractManagement-payment-approval', initialPaymentApprovalMap)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
   const [currentItem, setCurrentItem] = useState<PaymentMgmtItem | null>(null)
   const [isModalVisible, setIsModalVisible] = useState(false)
@@ -41,13 +43,6 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
   const [form] = Form.useForm()
   const [editForm] = Form.useForm()
   const [searchForm] = Form.useForm()
-
-  const totalPaid = paymentList.filter(p => p.status === '已支付').reduce((sum, p) => sum + p.amount, 0)
-  const totalApproved = paymentList.filter(p => p.status === '已审批').reduce((sum, p) => sum + p.amount, 0)
-  const totalPending = paymentList
-    .filter(p => p.status === '待审批' || p.status === '审批中' || p.status === '待支付')
-    .reduce((sum, p) => sum + p.amount, 0)
-  const totalAll = paymentList.reduce((sum, p) => sum + p.amount, 0)
 
   const payTypeColor = (type: string): string => {
     switch (type) {
@@ -214,10 +209,10 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
     })
   }
 
-  // ---------- 审批逻辑 ----------
-  const handleStartReview = (record: PaymentMgmtItem) => {
+  // ---------- 审批逻辑（参照质量检查模块模式） ----------
+
+  const handleReview = (record: PaymentMgmtItem) => {
     setReviewTarget(record)
-    updatePaymentStatus(record.key, '审批中')
     setIsReviewModalVisible(true)
   }
 
@@ -233,32 +228,28 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
     reviewer: string
   }) => {
     if (!reviewTarget) return
-    const chain = APPROVAL_CHAINS.PAYMENT
-    const existingRecords = approvalMap[reviewTarget.key] || []
-    const level = getNextReviewLevel(existingRecords)
+    const key = reviewTarget.key
+    const existingRecords = approvalMap[key] || []
+    const nextLevel = reviewTarget.status === '一审通过' ? 2 : (existingRecords.length + 1)
     const newRecord: ApprovalRecord = {
-      key: `${reviewTarget.key}-${level}`,
-      code: `${reviewTarget.code}-R${level}`,
-      level,
+      key: `${key}-r${nextLevel}-${Date.now()}`,
+      code: `${reviewTarget.code}-R${nextLevel}`,
+      level: nextLevel,
       reviewer: payload.reviewer,
       comment: payload.comment,
       status: payload.status,
       date: dayjs().format('YYYY-MM-DD HH:mm:ss'),
     }
-    const updatedRecords = [...existingRecords, newRecord]
-    setApprovalMap(prev => ({ ...prev, [reviewTarget.key]: updatedRecords }))
+    setApprovalMap(prev => ({ ...prev, [key]: [...existingRecords, newRecord] }))
 
     if (payload.status === '驳回') {
-      updatePaymentStatus(reviewTarget.key, '已驳回')
-      message.warning('支付申请已驳回')
-    } else if (level >= chain.levels.length) {
-      updatePaymentStatus(reviewTarget.key, '已审批')
-      message.success('支付申请审批通过，可在详情中标记为"已支付"')
+      setPaymentList(prev => prev.map(item => item.key === key ? { ...item, status: '待审批' as PaymentMgmtStatus } : item))
+      message.success('已驳回，返回待审批')
     } else {
-      updatePaymentStatus(reviewTarget.key, '审批中')
-      message.success(`第 ${level} 级审批通过，进入下一级审批`)
+      const newStatus: PaymentMgmtStatus = reviewTarget.status === '待审批' ? '一审通过' : '已审批'
+      setPaymentList(prev => prev.map(item => item.key === key ? { ...item, status: newStatus } : item))
+      message.success(newStatus === '已审批' ? '终审已通过' : '一审通过，等待总监理工程师终审')
     }
-
     setIsReviewModalVisible(false)
     setReviewTarget(null)
   }
@@ -384,24 +375,24 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
           <Button type="link" icon={<EyeOutlined />} size="small" onClick={(e) => { e.stopPropagation(); handleView(record); }}>
             查看
           </Button>
-          {(record.status === '待审批' || record.status === '审批中') && (
+          {(record.status === '待审批' && (currentUser.role === '监理工程师' || currentUser.role === '总监理工程师')) && (
             <Button
               type="link"
-              icon={<SafetyCertificateOutlined />}
+              icon={<CheckCircleOutlined />}
               size="small"
-              onClick={(e) => { e.stopPropagation(); handleStartReview(record); }}
+              onClick={(e) => { e.stopPropagation(); handleReview(record); }}
             >
-              发起审批
+              审批
             </Button>
           )}
-          {record.status === '审批中' && (
+          {record.status === '一审通过' && currentUser.role === '总监理工程师' && (
             <Button
               type="link"
-              icon={<SafetyCertificateOutlined />}
+              icon={<CheckCircleOutlined />}
               size="small"
-              onClick={(e) => { e.stopPropagation(); handleStartReview(record); }}
+              onClick={(e) => { e.stopPropagation(); handleReview(record); }}
             >
-              继续审批
+              审批
             </Button>
           )}
           <Button type="link" icon={<EditOutlined />} size="small" onClick={(e) => { e.stopPropagation(); showEditModal(record); }}>
@@ -420,8 +411,6 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
     if (!currentItem) return null
     const chain = APPROVAL_CHAINS.PAYMENT
     const records = getApprovalRecords(currentItem, approvalMap, 'PAYMENT', currentItem.applyDate || currentItem.payDate)
-    const canReview = currentItem.status === '待审批' || currentItem.status === '审批中'
-    const canMarkPaid = currentItem.status === '已审批'
 
     return (
       <div>
@@ -475,20 +464,6 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
 
         <Divider orientation="left" plain>审批流程</Divider>
         <ReviewTimeline levels={chain.levels} records={records} status={currentItem.status} />
-        <div style={{ textAlign: 'right', marginTop: 12 }}>
-          <Space>
-            {canReview && (
-              <Button type="primary" icon={<SafetyCertificateOutlined />} onClick={() => handleStartReview(currentItem)}>
-                {currentItem.status === '审批中' ? '继续审批' : '发起审批'}
-              </Button>
-            )}
-            {canMarkPaid && (
-              <Button type="primary" onClick={handleMarkPaid}>
-                标记为已支付
-              </Button>
-            )}
-          </Space>
-        </div>
 
         <Divider orientation="left" plain>支付意见文件</Divider>
         <Card
@@ -546,34 +521,11 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
       <CompactTableCssOnly />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h2 style={{ fontSize: 20, fontWeight: 600, margin: 0 }}>合同支付管理</h2>
+        <h2 style={{ fontSize: 20, fontWeight: 600, margin: 0 }}>建设合同支付</h2>
         <Button type="primary" icon={<PlusOutlined />} onClick={showModal}>
           新增支付申请
         </Button>
       </div>
-
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={6}>
-          <Card>
-            <Statistic title="已支付金额（元）" value={formatCurrency(totalPaid)} valueStyle={{ color: '#52c41a', fontSize: 18 }} suffix="元" />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic title="已审批金额（元）" value={formatCurrency(totalApproved)} valueStyle={{ color: '#1677ff', fontSize: 18 }} suffix="元" />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic title="待审批/待支付（元）" value={formatCurrency(totalPending)} valueStyle={{ color: '#fa8c16', fontSize: 18 }} suffix="元" />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic title="支付总金额（元）" value={formatCurrency(totalAll)} valueStyle={{ color: '#722ed1', fontSize: 18 }} suffix="元" />
-          </Card>
-        </Col>
-      </Row>
 
       <Card>
         <Form
@@ -852,13 +804,7 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
         }}
         onSubmit={handleReviewSubmit}
         reviewerOptions={APPROVAL_CHAINS.PAYMENT.reviewerOptions}
-        defaultReviewer={
-          reviewTarget
-            ? APPROVAL_CHAINS.PAYMENT.reviewers[
-                getNextReviewLevel(approvalMap[reviewTarget.key] || []) - 1
-              ] || APPROVAL_CHAINS.PAYMENT.reviewerOptions[0]
-            : APPROVAL_CHAINS.PAYMENT.reviewerOptions[0]
-        }
+        currentUser={currentUser.name}
         okText="提交审批意见"
       />
     </div>

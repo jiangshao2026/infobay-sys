@@ -101,6 +101,30 @@ const initialAllocationData: AllocationItem[] = [
     priority: '高',
     description: '负责顺德区医疗健康信息系统一体化建设监理工作',
   },
+  {
+    key: '9',
+    code: 'TA-2025-0301',
+    projectCode: 'XB2005-0301',
+    taskName: '番禺区排水管网厂网河一体化项目监理',
+    assignee: '梁永康',
+    startDate: '2025-06-01',
+    endDate: '2026-11-30',
+    status: '待启动',
+    priority: '高',
+    description: '负责番禺区排水管网基础数据普查及厂网河一体化信息系统建设监理工作',
+  },
+  {
+    key: '10',
+    code: 'TA-2025-0123',
+    projectCode: 'XB2005-0123',
+    taskName: '广州市民政局业务系统升级改造监理',
+    assignee: '滕海燕',
+    startDate: '2025-05-01',
+    endDate: '2025-12-31',
+    status: '待启动',
+    priority: '高',
+    description: '负责广州市民政局2025年业务系统升级改造监理工作，包括社会救助、社会组织登记管理、养老服务、儿童福利与保护等系统',
+  },
 ]
 
 // 根据项目编号查询关联任务

@@ -79,17 +79,6 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
       }),
     },
     {
-      title: '审批状态',
-      dataIndex: 'approvalStatus',
-      key: 'approvalStatus',
-      width: 110,
-      render: (approvalStatus: string) => descTag(approvalStatus, statusColor),
-      onCell: (record: ProjectItem) => ({
-        onClick: () => handleView(record),
-        style: { cursor: 'pointer' },
-      }),
-    },
-    {
       title: '总投资',
       dataIndex: 'investment',
       key: 'investment',
@@ -120,12 +109,6 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
           <Button type="link" icon={<DashboardOutlined />} size="small" onClick={() => navigate(`/project/overview/${record.code}`)} style={{ fontWeight: 500 }}>总览</Button>
           <Button type="link" icon={<EyeOutlined />} size="small" onClick={() => handleView(record)}>查看</Button>
           <Button type="link" icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)}>编辑</Button>
-          {record.approvalStatus === '待审批' && (
-            <>
-              <Button type="primary" size="small" onClick={() => handleApprove(record)}>审批通过</Button>
-              <Button danger size="small" onClick={() => handleReject(record)}>驳回</Button>
-            </>
-          )}
           <Popconfirm
             title="确定删除此项目？"
             onConfirm={() => handleDelete(record.key)}
@@ -142,43 +125,6 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const handleView = (record: ProjectItem) => {
     setCurrentProject(record)
     setIsDetailModalVisible(true)
-  }
-
-  const handleApprove = (record: ProjectItem) => {
-    Modal.confirm({
-      title: '确认审批通过',
-      content: `确认通过项目「${record.name}」的审批？`,
-      okText: '确认通过',
-      cancelText: '取消',
-      onOk: () => {
-        setProjectData(prev => {
-          const next = prev.map(item =>
-            item.key === record.key ? { ...item, approvalStatus: '已通过', approver: '管理员' } : item
-          )
-          return next
-        })
-        message.success('审批通过')
-      },
-    })
-  }
-
-  const handleReject = (record: ProjectItem) => {
-    Modal.confirm({
-      title: '确认驳回',
-      content: `确认驳回项目「${record.name}」的审批？`,
-      okText: '确认驳回',
-      cancelText: '取消',
-      okButtonProps: { danger: true },
-      onOk: () => {
-        setProjectData(prev => {
-          const next = prev.map(item =>
-            item.key === record.key ? { ...item, approvalStatus: '已驳回', approver: '管理员' } : item
-          )
-          return next
-        })
-        message.success('已驳回')
-      },
-    })
   }
 
   const handleEdit = (record: ProjectItem) => {
@@ -219,8 +165,7 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
         investment: parseAmountFromForm(values.investment),
         startDate: startStr,
         endDate: endStr,
-        approvalStatus: '待审批',
-        approver: '',
+        status: '未启动',
       }
       setProjectData(prev => {
         const next = [newProject, ...prev]
@@ -250,8 +195,8 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
               investment: parseAmountFromForm(values.investment),
               startDate: startStr,
               endDate: endStr,
-              approvalStatus: currentProject.approvalStatus,
-              approver: currentProject.approver,
+              // 项目状态由项目启动/验收业务流程自动联动，编辑时保留既有状态，不允许直接修改
+              status: currentProject.status,
             } : item
           )
           return next
@@ -276,9 +221,6 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
       }
       if (values.status) {
         match = match && item.status === values.status
-      }
-      if (values.approvalStatus) {
-        match = match && item.approvalStatus === values.approvalStatus
       }
       if (values.dateRange && values.dateRange.length === 2) {
         const [start, end] = values.dateRange
@@ -337,17 +279,9 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
           </Form.Item>
           <Form.Item name="status">
             <Select placeholder="项目状态" style={{ width: '150px' }} allowClear>
-              <Option value="启动阶段">启动阶段</Option>
-              <Option value="进行中">进行中</Option>
-              <Option value="即将完工">即将完工</Option>
-              <Option value="已完成">已完成</Option>
-            </Select>
-          </Form.Item>
-          <Form.Item name="approvalStatus">
-            <Select placeholder="审批状态" style={{ width: '130px' }} allowClear>
-              <Option value="待审批">待审批</Option>
-              <Option value="已通过">已通过</Option>
-              <Option value="已驳回">已驳回</Option>
+              <Option value="未启动">未启动</Option>
+              <Option value="已启动">已启动</Option>
+              <Option value="已验收">已验收</Option>
             </Select>
           </Form.Item>
           <Form.Item name="dateRange">
@@ -649,8 +583,6 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
             descItem('项目类型', descText(currentProject.type)),
             descItem('项目规模', descTag(currentProject.scale, scaleColor)),
             descItem('项目状态', descTag(currentProject.status, statusColor)),
-            descItem('审批状态', descTag(currentProject.approvalStatus, statusColor)),
-            currentProject.approver ? descItem('审批人', descText(currentProject.approver)) : null,
             descItem('总投资', descText(formatCurrency(currentProject.investment))),
             descItem('项目经理', descText(currentProject.manager)),
             descItem('施工单位', descText(currentProject.contractor)),

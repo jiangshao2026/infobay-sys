@@ -3,7 +3,8 @@ import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined
 import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import { usePersistedState } from '../../hooks/usePersistedState'
-import initialData from '../../data/costAnalyses'
+import { useUser } from '../../context/UserContext'
+import initialData, { initialAnalysisApprovalMap } from '../../data/costAnalyses'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import type { CostAnalysisItem, CCAnalysisStatus, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
 import { DetailModal, descItem, descText, CompactTableCssOnly } from '../../components/DetailModal'
@@ -20,6 +21,9 @@ const analysisStatusColor = (status: string): string => {
       return 'default'
     case '待审批':
       return 'gold'
+    case '一审通过':
+      return 'cyan'
+    case '已审批':
     case '已发布':
       return 'green'
     default:
@@ -31,7 +35,8 @@ interface AnalysisPageProps {}
 
 const AnalysisPanel: React.FC<AnalysisPageProps> = () => {
   const [list, setList] = usePersistedState<CostAnalysisItem[]>('cost-analysis', initialData)
-const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('costControl-analysisPage-approval', {})
+  const { currentUser } = useUser()
+const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('costControl-analysisPage-approval', initialAnalysisApprovalMap)
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -135,8 +140,11 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
         <Space size="small" style={{ display: 'flex', flexWrap: 'wrap' }}>
           <Button type="link" icon={<EyeOutlined />} size="small" onClick={() => handleView(record)}>查看</Button>
           <Button type="link" icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)}>编辑</Button>
-          {record.status !== '已发布' && (
-            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>发起审批</Button>
+          {(record.status === '待审批' && (currentUser.role === '监理工程师' || currentUser.role === '总监理工程师')) && (
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>审批</Button>
+          )}
+          {record.status === '一审通过' && currentUser.role === '总监理工程师' && (
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>审批</Button>
           )}
           <Popconfirm
             title="确定删除此成本分析报告？"
@@ -265,9 +273,10 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
     if (!currentItem) return
     const key = currentItem.key
     const existingRecords = approvalMap[key] || []
-    const nextLevel = existingRecords.length + 1
+    const nextLevel = (existingRecords.length + 1)
+
     const newRecord: ApprovalRecord = {
-      key: `${key}-${nextLevel}`,
+      key: `${key}-r${nextLevel}-${Date.now()}`,
       code: `${currentItem.code}-R${nextLevel}`,
       level: nextLevel,
       reviewer: payload.reviewer,
@@ -278,11 +287,13 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
     setApprovalMap(prev => ({ ...prev, [key]: [...existingRecords, newRecord] }))
 
     if (payload.status === '驳回') {
-      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '草稿' as CCAnalysisStatus } : item); return r })
-      message.success('已驳回')
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '待审批' as CCAnalysisStatus } : item); return r })
+      message.success('已驳回，返回待审批')
     } else {
-      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '已发布' as CCAnalysisStatus } : item); return r })
-      message.success('审批已提交')
+      const isFinal = nextLevel >= 2
+      const newStatus: CCAnalysisStatus = currentItem.status === '待审批' ? '一审通过' : '已审批'
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: newStatus } : item); return r })
+      message.success(newStatus === '已审批' ? '终审已通过' : '一审通过，等待总监理工程师终审')
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)
@@ -318,7 +329,8 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
           <Select placeholder="请选择状态">
             <Option value="草稿">草稿</Option>
             <Option value="待审批">待审批</Option>
-            <Option value="已发布">已发布</Option>
+            <Option value="一审通过">一审通过</Option>
+            <Option value="已审批">已审批</Option>
           </Select>
         </Form.Item>
       </div>
@@ -427,6 +439,8 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
         onSubmit={handleReviewSubmit}
         reviewerOptions={APPROVAL_CHAINS.PROJECT.reviewerOptions}
         okText="提交审批"
+      
+        currentUser={currentUser.name}
       />
     </div>
   )

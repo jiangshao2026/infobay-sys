@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import type { ContractItem, ApprovalRecord } from '../types/projectManagement'
-import initialContractData from '../data/contracts'
+import initialContractData, { initialContractApprovalMap } from '../data/contracts'
 
 // ============================================================
 // 全局共享数据上下文
@@ -59,7 +59,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // 合同审批记录
   const [contractApprovalMap, setContractApprovalMapInternal] = useState<Record<string, ApprovalRecord[]>>(() =>
-    loadFromStorage<Record<string, ApprovalRecord[]>>(STORAGE_KEY_APPROVALS, {})
+    loadFromStorage<Record<string, ApprovalRecord[]>>(STORAGE_KEY_APPROVALS, initialContractApprovalMap)
   )
 
   // 持久化到 localStorage
@@ -113,7 +113,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // 重置所有数据
   const resetAll = useCallback(() => {
     setContractListInternal(initialContractData)
-    setContractApprovalMapInternal({})
+    setContractApprovalMapInternal(initialContractApprovalMap)
     try {
       localStorage.removeItem(STORAGE_KEY_CONTRACTS)
       localStorage.removeItem(STORAGE_KEY_APPROVALS)

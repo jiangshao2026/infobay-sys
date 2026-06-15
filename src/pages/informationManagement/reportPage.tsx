@@ -4,7 +4,7 @@ import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import { usePersistedState } from '../../hooks/usePersistedState'
 import { useUser } from '../../context/UserContext'
-import initialData from '../../data/infoReports'
+import initialData, { initialReportApprovalMap } from '../../data/infoReports'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import type { InfoReportItem, IMReportType, IMReportStatus, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
 import { DetailModal, descItem, descText, CompactTableCssOnly } from '../../components/DetailModal'
@@ -36,7 +36,7 @@ const reportStatusColor = (status: string): string => {
 const ReportPanel: React.FC = () => {
   const [list, setList] = usePersistedState<ReportMgmtItem[]>('info-report', initialData)
   const { currentUser } = useUser()
-const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('informationManagement-reportPage-approval', {})
+const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('informationManagement-reportPage-approval', initialReportApprovalMap)
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -129,8 +129,11 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
         <Space size="small" style={{ display: 'flex', flexWrap: 'wrap' }}>
           <Button type="link" icon={<EyeOutlined />} size="small" onClick={() => handleView(record)}>查看</Button>
           <Button type="link" icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)}>编辑</Button>
-          {record.status !== '已发布' && record.status !== '已驳回' && (
-            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>{record.status === '审批中' ? '审批' : '发起审批'}</Button>
+          {(record.status === '待审批' && (currentUser.role === '监理工程师' || currentUser.role === '总监理工程师')) && (
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>审批</Button>
+          )}
+          {record.status === '一审通过' && currentUser.role === '总监理工程师' && (
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>审批</Button>
           )}
           <Popconfirm
             title="确定删除此报告？"
@@ -260,10 +263,8 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
     const key = currentItem.key
     const existingRecords = approvalMap[key] || []
     const nextLevel = existingRecords.length + 1
-    const chain = APPROVAL_CHAINS.PROJECT
-    const isLast = nextLevel >= chain.levels.length
     const newRecord: ApprovalRecord = {
-      key: `${key}-${nextLevel}`,
+      key: `${key}-r${nextLevel}-${Date.now()}`,
       code: `${currentItem.code}-R${nextLevel}`,
       level: nextLevel,
       reviewer: payload.reviewer,
@@ -274,11 +275,12 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
     setApprovalMap(prev => ({ ...prev, [key]: [...existingRecords, newRecord] }))
 
     if (payload.status === '驳回') {
-      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '已驳回' as IMReportStatus } : item); return r })
-      message.success('已驳回')
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '待审批' as IMReportStatus } : item); return r })
+      message.success('已驳回，返回待审批')
     } else {
-      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: (isLast ? '已发布' : '审批中') as IMReportStatus } : item); return r })
-      message.success(isLast ? '审批已通过' : '审批已提交至下一级')
+      const newStatus: IMReportStatus = currentItem.status === '待审批' ? '一审通过' : '已审批'
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: newStatus } : item); return r })
+      message.success(newStatus === '已审批' ? '终审已通过' : '一审通过，等待总监理工程师终审')
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)

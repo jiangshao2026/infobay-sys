@@ -235,7 +235,7 @@ const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
             查看
           </Button>
           {record.status === '待收款' && (
-            <Button type="primary" icon={<WalletOutlined />} size="small" onClick={(e) => { e.stopPropagation(); handleConfirmReceive(record); }}>
+            <Button type="link" icon={<WalletOutlined />} size="small" onClick={(e) => { e.stopPropagation(); handleConfirmReceive(record); }}>
               确认收款
             </Button>
           )}

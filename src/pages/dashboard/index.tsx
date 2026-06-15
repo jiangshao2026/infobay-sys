@@ -46,30 +46,45 @@ function Dashboard() {
   const { currentUser } = useUser()
   const [today] = useState(dayjs().format('YYYY年MM月DD日 dddd'))
 
-  const projectCount = initialProjectData.length
-  const supervisionContractCount = supervisionContractData.length
-  const buildContractCount = contractMgmtData.length
-  const qualityIssueCount = qualityIssuesData.length
-  const safetyIssueCount = safetyIncidentsData.length + safetyChecksData.length
-  const changeCount = changeRequestsData.length
-  const acceptanceCount = acceptanceChecksData.length
-  const filingCount = fileArchivesData.length
-  const docTotal = infoDocuments.length
-  const knowledgeCount = knowledgeDocs.length
-  const totalContractCount = supervisionContractCount + buildContractCount
+  // ==================== 数据统计（基于各模块实际数据计算） ====================
+  const projectCount = initialProjectData.length                         // 项目总数
+  const inProgressProjects = initialProjectData.filter(p => p.status === '已启动')   // 已启动（进行中）
+  const acceptedProjects = initialProjectData.filter(p => p.status === '已验收')      // 已验收
+  const notStartedProjects = initialProjectData.filter(p => p.status === '未启动')    // 未启动
+  const supervisionContractCount = supervisionContractData.length         // 监理合同
+  const buildContractCount = contractMgmtData.length                       // 建设合同
+  const totalContractCount = supervisionContractCount + buildContractCount  // 合同总数
+  const qualityIssueCount = qualityIssuesData.length                       // 质量问题
+  const safetyIssueCount = safetyIncidentsData.length + safetyChecksData.length   // 安全隐患
+  const changeCount = changeRequestsData.length                             // 变更申请
+  const acceptanceCount = acceptanceChecksData.length                       // 验收
+  const filingCount = fileArchivesData.length                               // 归档
+  const docTotal = infoDocuments.length                                     // 文档
+  const knowledgeCount = knowledgeDocs.length                               // 知识条目
 
-  const inProgressProjects = initialProjectData.filter(
-    p => p.status === '进行中' || p.status === '启动阶段'
+  // 监理合同待审批（区分已审批/已完成/待审批状态）
+  const pendingApprovalContracts = supervisionContractData.filter((c: any) => c.status === '待审批')
+  const approvedContracts = supervisionContractData.filter((c: any) => c.status === '已审批' || c.status === '已完成')
+
+  // 建设合同待审批
+  const pendingApprovalBuildContracts = contractMgmtData.filter((c: any) => c.status === '待审批' || c.status === '待一审' || c.status === '一审中')
+
+  // 支付管理（待支付）：二审"已审批"但尚未实际付款的支付单
+  const pendingPayments = paymentMgmtData.filter((p: any) => p.status === '已审批')
+  const pendingPaymentAmount = pendingPayments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0)
+
+  // 待审批变更
+  const pendingChanges = changeRequestsData.filter((c: any) =>
+    c.status === '待审批' || c.status === '一审通过' || c.status === '待提交' || c.status === '待一审' || c.status === '一审中'
   )
-  const pendingAcceptanceProjects = initialProjectData.filter(
-    p => p.status === '即将完工' || p.status === '进行中'
+
+  // 待验收项目 = 已启动项目中有待验收检查记录（这里简化：已启动项目中存在待审批验收检查记录的项目）
+  const pendingAcceptanceProjectCodes = new Set(
+    acceptanceChecksData
+      .filter((a: any) => a.status === '待审批' || a.status === '进行中' || a.status === '待安排')
+      .map((a: any) => a.projectCode)
   )
-  const pendingPaymentAmount = paymentMgmtData
-    .filter(p => p.status === '待支付')
-    .reduce((sum, p) => sum + p.amount, 0)
-  const pendingChangeCount = changeRequestsData.filter(
-    c => c.status === '待审批' || c.status === '一审通过' || c.status === '待提交'
-  ).length
+  const pendingAcceptanceProjects = initialProjectData.filter(p => pendingAcceptanceProjectCodes.has(p.code))
 
   // ==================== 弹窗状态 ====================
   const [listModal, setListModal] = useState<{ open: boolean; title: string; columns: any[]; data: any[]; page: number }>({
@@ -306,21 +321,18 @@ function Dashboard() {
   }
 
   const showPendingPaymentList = () => {
-    const pendingPayments = paymentMgmtData
-      .filter((p: any) => p.status === '待支付')
-      .map((p: any) => ({
-        ...p,
-        payTitle:
-          (getProjectNameByCode(p.projectCode) || '项目') +
-          ' - ' +
-          (p.payType || '进度款') +
-          (p.remark ? '（' + p.remark + '）' : ''),
-      }))
+    const filtered = paymentMgmtData.filter((p: any) => p.status === '已审批')
     const columns = [
       { title: '支付编号', dataIndex: 'code', key: 'code', width: 140 },
-      { title: '关联项目', dataIndex: 'projectCode', key: 'pc', width: 200, render: (v: string) => getProjectNameByCode(v) },
-      { title: '支付说明', dataIndex: 'payTitle', key: 'payTitle', width: 320 },
-      { title: '付款类型', dataIndex: 'payType', key: 'payType', width: 100 },
+      { title: '合同编号', dataIndex: 'contractCode', key: 'contractCode', width: 160 },
+      {
+        title: '项目名称',
+        dataIndex: 'projectCode',
+        key: 'projectCode',
+        width: 280,
+        render: (v: string) => getProjectNameByCode(v),
+      },
+      { title: '款项类型', dataIndex: 'payType', key: 'payType', width: 100 },
       { title: '申请金额', dataIndex: 'amount', key: 'amount', width: 140, render: (v: number) => formatCurrency(v) },
       {
         title: '状态',
@@ -329,10 +341,11 @@ function Dashboard() {
         width: 100,
         render: (status: string) => <Tag color={statusColor(status)}>{status}</Tag>,
       },
-      { title: '申请单位', dataIndex: 'contractor', key: 'unit', width: 200 },
+      { title: '申请单位', dataIndex: 'contractor', key: 'contractor', width: 220 },
       { title: '计划支付日期', dataIndex: 'payDate', key: 'payDate', width: 140 },
+      { title: '备注', dataIndex: 'remark', key: 'remark', width: 220 },
     ]
-    setListModal({ open: true, page: 1, title: '待支付金额列表（共 ' + pendingPayments.length + ' 笔）', columns, data: pendingPayments })
+    setListModal({ open: true, page: 1, title: '待支付金额列表（共 ' + filtered.length + ' 条）', columns, data: filtered })
   }
 
   const showPendingChangeList = () => {
@@ -358,11 +371,26 @@ function Dashboard() {
     setListModal({ open: true, page: 1, title: '待审批变更列表（共 ' + pendingChanges.length + ' 条）', columns, data: pendingChanges })
   }
 
-  // ==================== 近期项目进度 ====================
-  const recentProjects = inProgressProjects.slice(0, 6).map((p, idx) => ({
+  // ==================== 近期项目进度（基于实际建设周期计算） ====================
+  const computeProjectProgress = (start: string, end: string): number => {
+    const s = dayjs(start)
+    const e = dayjs(end)
+    const now = dayjs()
+    if (!s.isValid() || !e.isValid()) return 0
+    const total = e.diff(s, 'day')
+    if (total <= 0) return 100
+    if (now.isBefore(s)) return 5
+    if (now.isAfter(end)) return 100
+    const elapsed = now.diff(s, 'day')
+    return Math.min(100, Math.max(5, Math.round((elapsed / total) * 100)))
+  }
+
+  // 已启动项目按建设周期计算真实进度；已验收项目为 100%
+  const recentProjects = inProgressProjects.slice(0, 8).map((p: any) => ({
     ...p,
-    progress: Math.round(30 + idx * 10 + (idx % 2 === 0 ? 0 : 5)),
+    progress: computeProjectProgress(p.startDate, p.endDate),
   }))
+  const acceptedProjectDetails = acceptedProjects.map((p: any) => ({ ...p, progress: 100 }))
 
   const projectColumns = [
     { title: '项目名称', dataIndex: 'name', key: 'name', width: 340 },
@@ -371,11 +399,12 @@ function Dashboard() {
     { title: '项目金额', dataIndex: 'investment', key: 'investment', width: 180, render: (amount: number) => formatCurrency(amount) },
   ]
 
-  // ==================== 待处理事项 ====================
+  // ==================== 待处理事项（来自各模块的真实待处理数据） ====================
   const todoItems: TodoItem[] = [
+    // 质量问题：待整改 / 整改中
     ...qualityIssuesData
-      .filter(q => q.status === '待整改' || q.status === '整改中')
-      .map(q => ({
+      .filter((q: any) => q.status === '待整改' || q.status === '整改中')
+      .map((q: any) => ({
         key: 'q-' + q.key,
         category: '质量问题',
         title: q.title,
@@ -386,9 +415,10 @@ function Dashboard() {
         desc: q.location + ' - 责任人：' + q.handler,
         source: q,
       })),
+    // 安全隐患：待处理 / 处理中
     ...safetyIncidentsData
-      .filter(s => s.status === '待处理' || s.status === '处理中')
-      .map(s => ({
+      .filter((s: any) => s.status === '待处理' || s.status === '处理中')
+      .map((s: any) => ({
         key: 'si-' + s.key,
         category: '安全隐患',
         title: s.title,
@@ -399,9 +429,10 @@ function Dashboard() {
         desc: s.location + ' - 责任人：' + s.handler,
         source: s,
       })),
+    // 安全检查：待审批
     ...safetyChecksData
-      .filter(sc => sc.status === '待审批' || sc.status === '一审中')
-      .map(sc => ({
+      .filter((sc: any) => sc.status === '待审批' || sc.status === '一审中')
+      .map((sc: any) => ({
         key: 'sc-' + sc.key,
         category: '安全检查',
         title: sc.title,
@@ -412,9 +443,10 @@ function Dashboard() {
         desc: sc.location + ' - 检查人：' + sc.reviewer,
         source: sc,
       })),
+    // 变更申请：待审批 / 待一审 / 一审中 / 一审通过
     ...changeRequestsData
-      .filter(c => c.status === '待审批' || c.status === '待一审' || c.status === '一审中' || c.status === '一审通过')
-      .map(c => ({
+      .filter((c: any) => c.status === '待审批' || c.status === '待一审' || c.status === '一审中' || c.status === '一审通过' || c.status === '待提交')
+      .map((c: any) => ({
         key: 'c-' + c.key,
         category: '变更申请',
         title: c.title,
@@ -425,9 +457,10 @@ function Dashboard() {
         desc: c.type + ' - 申请人：' + c.applicant,
         source: c,
       })),
+    // 验收检查：待审批 / 进行中 / 待安排
     ...acceptanceChecksData
-      .filter(a => a.status === '待验收' || a.status === '进行中' || a.status === '待安排')
-      .map(a => ({
+      .filter((a: any) => a.status === '待审批' || a.status === '进行中' || a.status === '待安排' || a.status === '待验收')
+      .map((a: any) => ({
         key: 'a-' + a.key,
         category: '验收事项',
         title: a.title,
@@ -437,6 +470,48 @@ function Dashboard() {
         priority: a.result || '待检查',
         desc: a.type + ' - 验收人：' + a.inspector,
         source: a,
+      })),
+    // 监理合同：待审批
+    ...supervisionContractData
+      .filter((c: any) => c.status === '待审批' || c.status === '待总监理工程师审批' || c.status === '待部门经理审批' || c.status === '待分管副总经理审批')
+      .map((c: any) => ({
+        key: 'j-' + c.key,
+        category: '监理合同',
+        title: c.name,
+        status: c.status,
+        projectName: getProjectNameByCode(c.projectCode),
+        date: c.signDate,
+        priority: '正常',
+        desc: c.partyA + ' - 金额：' + formatCurrency(c.amount),
+        source: c,
+      })),
+    // 建设合同（contractMgmtData）：待审批 / 一审中 / 一审通过
+    ...contractMgmtData
+      .filter((c: any) => c.status === '待审批' || c.status === '待一审' || c.status === '一审中')
+      .map((c: any) => ({
+        key: 'b-' + c.key,
+        category: '建设合同',
+        title: c.name,
+        status: c.status,
+        projectName: getProjectNameByCode(c.projectCode),
+        date: c.signDate,
+        priority: '正常',
+        desc: c.type + ' - 金额：' + formatCurrency(c.amount),
+        source: c,
+      })),
+    // 支付管理：二审已审批但尚未实际付款
+    ...paymentMgmtData
+      .filter((p: any) => p.status === '已审批')
+      .map((p: any) => ({
+        key: 'p-' + p.key,
+        category: '支付申请',
+        title: (p.type || '进度款') + ' - ' + (p.remark || ''),
+        status: p.status,
+        projectName: getProjectNameByCode(p.projectCode),
+        date: p.payDate,
+        priority: '正常',
+        desc: '金额：' + formatCurrency(p.amount) + '（' + (p.contractor || '') + '）',
+        source: p,
       })),
   ]
 
@@ -452,6 +527,12 @@ function Dashboard() {
         return 'orange'
       case '验收事项':
         return 'blue'
+      case '监理合同':
+        return 'purple'
+      case '建设合同':
+        return 'magenta'
+      case '支付申请':
+        return 'cyan'
       default:
         return 'default'
     }
@@ -482,13 +563,17 @@ function Dashboard() {
       <CompactTableCssOnly />
 
       <Card style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
           <div>
             <h2 style={{ fontSize: 22, fontWeight: 600, margin: 0 }}>欢迎回来，{currentUser.name}</h2>
             <p style={{ margin: '8px 0 0 0', color: '#666' }}>今天是 {today}，这里是您的监理工作总览。</p>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <Statistic title="当前监督项目" value={projectCount} suffix="个" valueStyle={{ color: '#1890ff' }} />
+          <div style={{ display: 'flex', gap: 24 }}>
+            <Statistic title="项目总数" value={projectCount} suffix="个" valueStyle={{ color: '#1890ff' }} />
+            <Statistic title="进行中" value={inProgressProjects.length} suffix="个" valueStyle={{ color: '#52c41a' }} />
+            <Statistic title="已验收" value={acceptedProjects.length} suffix="个" valueStyle={{ color: '#13c2c2' }} />
+            <Statistic title="未启动" value={notStartedProjects.length} suffix="个" valueStyle={{ color: '#8c8c8c' }} />
+            <Statistic title="待处理事项" value={todoItems.length} suffix="项" valueStyle={{ color: '#fa8c16' }} />
           </div>
         </div>
       </Card>
@@ -623,7 +708,7 @@ function Dashboard() {
           >
             <Statistic
               title="待审批变更"
-              value={pendingChangeCount}
+              value={pendingChanges.length}
               suffix="条"
               valueStyle={{ color: '#f5222d' }}
               prefix={<WarningOutlined />}
@@ -633,7 +718,7 @@ function Dashboard() {
       </Row>
 
       {/* 近期项目进度 */}
-      <Card title="近期项目进度（点击任一行查看详情）" style={{ marginBottom: 16 }}>
+      <Card title="近期项目进度" style={{ marginBottom: 16 }}>
         <Table
           size="small"
           dataSource={recentProjects}
@@ -645,7 +730,7 @@ function Dashboard() {
       </Card>
 
       {/* 待处理事项 */}
-      <Card title={'待处理事项（共 ' + todoItems.length + ' 条，点击任一行查看详情）'}>
+      <Card title={'待处理事项（共 ' + todoItems.length + ' 条）'}>
         <Table
           size="small"
           dataSource={todoItems}
@@ -716,8 +801,6 @@ function Dashboard() {
                 <Tag color={statusColor(projectDetailModal.project.status)}>{projectDetailModal.project.status}</Tag>
               </Descriptions.Item>
               <Descriptions.Item label="项目负责人">{projectDetailModal.project.manager}</Descriptions.Item>
-              <Descriptions.Item label="审批状态">{projectDetailModal.project.approvalStatus}</Descriptions.Item>
-              <Descriptions.Item label="审批人">{projectDetailModal.project.approver}</Descriptions.Item>
               <Descriptions.Item label="项目投资金额">{formatCurrency(projectDetailModal.project.investment)}</Descriptions.Item>
               <Descriptions.Item label="开始日期">{projectDetailModal.project.startDate}</Descriptions.Item>
               <Descriptions.Item label="结束日期">{projectDetailModal.project.endDate}</Descriptions.Item>
@@ -833,6 +916,52 @@ function Dashboard() {
                   <Descriptions.Item label="验收结果">{todoDetailModal.item.source.result}</Descriptions.Item>
                   <Descriptions.Item label="整改要求" span={2}>
                     {todoDetailModal.item.source.rectification || todoDetailModal.item.source.description || '详见验收报告'}
+                  </Descriptions.Item>
+                </>
+              )}
+
+              {/* 监理合同详情 */}
+              {todoDetailModal.item.category === '监理合同' && (
+                <>
+                  <Descriptions.Item label="合同编号">{todoDetailModal.item.source.code}</Descriptions.Item>
+                  <Descriptions.Item label="建设单位">{todoDetailModal.item.source.partyA}</Descriptions.Item>
+                  <Descriptions.Item label="承建单位">{todoDetailModal.item.source.partyB}</Descriptions.Item>
+                  <Descriptions.Item label="合同金额">{formatCurrency(todoDetailModal.item.source.amount)}</Descriptions.Item>
+                  <Descriptions.Item label="签订日期">{todoDetailModal.item.source.signDate}</Descriptions.Item>
+                  <Descriptions.Item label="项目名称">{getProjectNameByCode(todoDetailModal.item.source.projectCode)}</Descriptions.Item>
+                  <Descriptions.Item label="备注" span={2}>
+                    {todoDetailModal.item.source.description || todoDetailModal.item.source.remark || '—'}
+                  </Descriptions.Item>
+                </>
+              )}
+
+              {/* 建设合同详情 */}
+              {todoDetailModal.item.category === '建设合同' && (
+                <>
+                  <Descriptions.Item label="合同编号">{todoDetailModal.item.source.code}</Descriptions.Item>
+                  <Descriptions.Item label="合同类型">{todoDetailModal.item.source.type}</Descriptions.Item>
+                  <Descriptions.Item label="建设单位">{todoDetailModal.item.source.partyA}</Descriptions.Item>
+                  <Descriptions.Item label="承建单位">{todoDetailModal.item.source.partyB}</Descriptions.Item>
+                  <Descriptions.Item label="合同金额">{formatCurrency(todoDetailModal.item.source.amount)}</Descriptions.Item>
+                  <Descriptions.Item label="签订日期">{todoDetailModal.item.source.signDate}</Descriptions.Item>
+                  <Descriptions.Item label="关联项目">{getProjectNameByCode(todoDetailModal.item.source.projectCode)}</Descriptions.Item>
+                  <Descriptions.Item label="备注" span={2}>
+                    {todoDetailModal.item.source.remark || todoDetailModal.item.source.description || '—'}
+                  </Descriptions.Item>
+                </>
+              )}
+
+              {/* 支付申请详情 */}
+              {todoDetailModal.item.category === '支付申请' && (
+                <>
+                  <Descriptions.Item label="支付编号">{todoDetailModal.item.source.code}</Descriptions.Item>
+                  <Descriptions.Item label="关联项目">{getProjectNameByCode(todoDetailModal.item.source.projectCode)}</Descriptions.Item>
+                  <Descriptions.Item label="支付类型">{todoDetailModal.item.source.type || todoDetailModal.item.source.payType || '进度款'}</Descriptions.Item>
+                  <Descriptions.Item label="申请金额">{formatCurrency(todoDetailModal.item.source.amount)}</Descriptions.Item>
+                  <Descriptions.Item label="计划支付">{todoDetailModal.item.source.payDate}</Descriptions.Item>
+                  <Descriptions.Item label="施工单位">{todoDetailModal.item.source.contractor}</Descriptions.Item>
+                  <Descriptions.Item label="备注" span={2}>
+                    {todoDetailModal.item.source.remark || todoDetailModal.item.source.description || '—'}
                   </Descriptions.Item>
                 </>
               )}

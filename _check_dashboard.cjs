@@ -1,0 +1,12 @@
+const fs = require('fs');
+const c = fs.readFileSync('src/pages/dashboard/index.tsx','utf8');
+console.log('Lines:', c.split('\n').length);
+console.log('has export default Dashboard:', c.includes('export default Dashboard'));
+console.log('setListModal{open:true,page:1 count:', (c.match(/setListModal\(\{\s*open:\s*true,\s*page:\s*1/g) || []).length);
+console.log('has projectColumns with 4 cols:', c.match(/projectColumns\s*=\s*\[([\s\S]*?)\]/)[0].split('{').length - 1);
+console.log('has no action col in projectColumns:', !/projectColumns[\s\S]*?key:\s*'action'/.test(c));
+console.log('has todoColumns:', /const todoColumns = \[/.test(c));
+console.log('todoColumns has no action:', !/todoColumns[\s\S]*?key:\s*'action'/.test(c));
+console.log('onRow project table:', (c.match(/onRow=\{\(record:\s*any\)/g) || []).length);
+console.log('onRow todo table:', (c.match(/onRow=\{\(record:\s*TodoItem\)/g) || []).length);
+console.log('has 关闭 Pagination/Button in listModal:', c.includes('showSizeChanger={false}'));

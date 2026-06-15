@@ -1,4 +1,4 @@
-import type { CostBudgetItem, DocumentAttachment } from '../types/projectManagement'
+import type { CostBudgetItem, DocumentAttachment, ApprovalRecord } from '../types/projectManagement'
 
 const att = (seed: string): DocumentAttachment[] => [
   {
@@ -75,7 +75,7 @@ const initialData: CostBudgetItem[] = [
     approvedAmount: 0,
     periodStart: '2025-01-10',
     periodEnd: '2026-12-31',
-    status: '一审中',
+    status: '待审批',
     attachments: att('cb5'),
   },
   {
@@ -88,9 +88,24 @@ const initialData: CostBudgetItem[] = [
     approvedAmount: 0,
     periodStart: '2025-04-20',
     periodEnd: '2025-12-31',
-    status: '草稿',
+    status: '待审批',
     attachments: att('cb6'),
   },
 ]
+
+export const initialBudgetApprovalMap: Record<string, ApprovalRecord[]> = {
+  'cb-1': [
+    { key: 'cb-1-r1', code: 'CB-2025-001-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '预算合理，一审通过。', date: '2025-01-02 10:00:00' },
+    { key: 'cb-1-r2', code: 'CB-2025-001-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '终审通过。', date: '2025-01-03 09:00:00' },
+  ],
+  'cb-2': [
+    { key: 'cb-2-r1', code: 'CB-2025-002-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '采购预算合理，一审通过。', date: '2025-01-05 14:00:00' },
+    { key: 'cb-2-r2', code: 'CB-2025-002-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '终审通过。', date: '2025-01-06 10:00:00' },
+  ],
+  'cb-3': [
+    { key: 'cb-3-r1', code: 'CB-2025-003-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '监理费用预算合理，一审通过。', date: '2025-02-02 16:00:00' },
+    { key: 'cb-3-r2', code: 'CB-2025-003-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '终审通过。', date: '2025-02-03 09:00:00' },
+  ],
+}
 
 export default initialData

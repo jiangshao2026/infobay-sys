@@ -1,4 +1,4 @@
-import type { SafetyIncidentItem, DocumentAttachment } from '../types/projectManagement'
+import type { SafetyIncidentItem, DocumentAttachment, ApprovalRecord } from '../types/projectManagement'
 
 const att = (seed: string): DocumentAttachment[] => [
   {
@@ -65,5 +65,16 @@ const initialData: SafetyIncidentItem[] = [
     attachments: att('si3'),
   },
 ]
+
+// 初始审批记录
+export const initialIncidentApprovalMap: Record<string, ApprovalRecord[]> = {
+  'si-1': [
+    { key: 'si-1-r1', code: 'SI-2025-001-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '事故处理方案合理，整改措施到位，一审通过。', date: '2025-06-02 16:00:00' },
+  ],
+  'si-3': [
+    { key: 'si-3-r1', code: 'SI-2025-003-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '调查报告完整，处理得当，一审通过。', date: '2025-05-22 14:00:00' },
+    { key: 'si-3-r2', code: 'SI-2025-003-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '终审通过。', date: '2025-05-23 09:00:00' },
+  ],
+}
 
 export default initialData

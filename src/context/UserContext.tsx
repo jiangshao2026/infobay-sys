@@ -14,7 +14,18 @@ export const DEMO_USERS: DemoUser[] = [
   { key: 'u2', name: '王华', position: '部门经理', avatarText: '王', role: '部门经理' },
   { key: 'u3', name: '韦江腾', position: '总监理工程师 / 知识管理员', avatarText: '韦', role: '总监理工程师' },
   { key: 'u4', name: '滕海燕', position: '监理工程师', avatarText: '滕', role: '监理工程师' },
-  { key: 'u5', name: '孙永秀', position: '销售', avatarText: '孙', role: '销售' },
+  { key: 'u5', name: '李建华', position: '销售', avatarText: '李', role: '销售' },
+  // ===== 以下为新增 =====
+  { key: 'u6', name: '许琰芳', position: '销售', avatarText: '许', role: '销售' },
+  { key: 'u7', name: '蔡海婷', position: '销售', avatarText: '蔡', role: '销售' },
+  { key: 'u8', name: '李鉴韬', position: '销售', avatarText: '李', role: '销售' },
+  { key: 'u9', name: '孙永秀', position: '销售', avatarText: '孙', role: '销售' },
+  { key: 'u10', name: '梁育境', position: '监理工程师', avatarText: '梁', role: '监理工程师' },
+  { key: 'u11', name: '马健霖', position: '监理工程师', avatarText: '马', role: '监理工程师' },
+  { key: 'u12', name: '陈健文', position: '监理工程师', avatarText: '陈', role: '监理工程师' },
+  { key: 'u13', name: '邱隆宝', position: '监理工程师', avatarText: '邱', role: '监理工程师' },
+  { key: 'u14', name: '许小嘉', position: '总监理工程师 / 监理工程师', avatarText: '许', role: '总监理工程师' },
+  { key: 'u15', name: '赵雄飞', position: '总监理工程师 / 监理工程师', avatarText: '赵', role: '总监理工程师' },
 ]
 
 const DEFAULT_PASSWORD = 'xinbai'

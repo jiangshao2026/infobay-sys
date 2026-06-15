@@ -4,7 +4,7 @@ import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import { usePersistedState } from '../../hooks/usePersistedState'
 import { useUser } from '../../context/UserContext'
-import initialData from '../../data/safetyChecks'
+import initialData, { initialSafetyApprovalMap } from '../../data/safetyChecks'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import type { SafetyCheckItem, SFCheckType, SFLevel, SFCheckStatus, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
 import { DetailModal, descItem, descText, CompactTableCssOnly } from '../../components/DetailModal'
@@ -29,10 +29,6 @@ const checkStatusColor = (status: string): string => {
   }
 }
 
-const nextCheckStatus: Record<string, SFCheckStatus> = {
-  '待审批': '一审中',
-  '一审中': '已通过',
-}
 
 const riskLevelColor = (level: string): string => {
   switch (level) {
@@ -52,7 +48,7 @@ const riskLevelColor = (level: string): string => {
 const CheckPanel: React.FC = () => {
   const [list, setList] = usePersistedState<SafetyCheckItem[]>('safety-check', initialData)
   const { currentUser } = useUser()
-const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('safetyManagement-checkPage-approval', {})
+const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('safetyManagement-checkPage-approval', initialSafetyApprovalMap)
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -165,8 +161,11 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
         <Space size="small" style={{ display: 'flex', flexWrap: 'wrap' }}>
           <Button type="link" icon={<EyeOutlined />} size="small" onClick={() => handleView(record)}>查看</Button>
           <Button type="link" icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)}>编辑</Button>
-          {record.status !== '已通过' && (
-            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>推进审批</Button>
+          {(record.status === '待审批' && (currentUser.role === '监理工程师' || currentUser.role === '总监理工程师')) && (
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>审批</Button>
+          )}
+          {record.status === '一审通过' && currentUser.role === '总监理工程师' && (
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>审批</Button>
           )}
           <Popconfirm
             title="确定删除此安全检查记录？"
@@ -301,11 +300,10 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
     if (!currentItem) return
     const key = currentItem.key
     const existingRecords = approvalMap[key] || []
-    const nextLevel = existingRecords.length + 1
-    const chain = APPROVAL_CHAINS.PROJECT
-    const isLast = nextLevel >= chain.levels.length
+    const nextLevel = currentItem.status === '一审通过' ? 2 : (existingRecords.length + 1)
+
     const newRecord: ApprovalRecord = {
-      key: `${key}-${nextLevel}`,
+      key: `${key}-r${nextLevel}-${Date.now()}`,
       code: `${currentItem.code}-R${nextLevel}`,
       level: nextLevel,
       reviewer: payload.reviewer,
@@ -316,12 +314,12 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
     setApprovalMap(prev => ({ ...prev, [key]: [...existingRecords, newRecord] }))
 
     if (payload.status === '驳回') {
-      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '已驳回' as SFCheckStatus } : item); return r })
-      message.success('已驳回')
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '待审批' as SFCheckStatus } : item); return r })
+      message.success('已驳回，返回待审批')
     } else {
-      const nextStatus = nextCheckStatus[currentItem.status] || '已通过' as SFCheckStatus
-      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: nextStatus } : item); return r })
-      message.success(nextStatus === '已通过' ? '审批已通过' : '审批已提交至下一级')
+      const newStatus: SFCheckStatus = currentItem.status === '待审批' ? '一审通过' : '已审批'
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: newStatus } : item); return r })
+      message.success(newStatus === '已审批' ? '终审已通过' : '一审通过，等待总监理工程师终审')
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)

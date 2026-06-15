@@ -1,4 +1,4 @@
-import type { KnowledgeDocItem, DocumentAttachment, KDDocReview } from '../types/projectManagement'
+import type { KnowledgeDocItem, DocumentAttachment, KDDocReview, ApprovalRecord } from '../types/projectManagement'
 
 const att = (seed: string): DocumentAttachment[] => [
   {
@@ -12,9 +12,12 @@ const att = (seed: string): DocumentAttachment[] => [
   },
 ]
 
-const review = (seed: string, reviewer: string, content: string): KDDocReview[] => [
-  { key: `${seed}-r1`, reviewer, content, timestamp: '2025-05-20 14:30:00' },
-]
+// ============================================================
+// 演示数据说明（按需求 V0.3）：
+//  - 3 条记录的状态为"待审批"（任何人都可以提交新文档；韦江腾一审、王小平终审）
+//  - 其余大部分为"已发布"（已完成两级审批）
+//  - 对 5 条已发布记录附加真实感用户点评
+// ============================================================
 
 const initialData: KnowledgeDocItem[] = [
   {
@@ -30,7 +33,10 @@ const initialData: KnowledgeDocItem[] = [
     views: 328,
     attachments: att('kb-std-001'),
     status: '已发布',
-    reviews: review('kb-std-001', '张建华', '解读准确，条理清晰，建议补充更多实际案例'),
+    reviews: [
+      { key: 'kb-std-001-r1', reviewer: '王华', content: '对规范条款的解读深入浅出，新员工快速上手非常有帮助，强烈推荐！', timestamp: '2025-03-22 10:30:00' },
+      { key: 'kb-std-001-r2', reviewer: '滕海燕', content: '第3.2节提到的"旁站监理"定义是否能补充一个工程示例？希望看到实际操作的场景。', timestamp: '2025-03-25 14:15:00' },
+    ],
   },
   {
     key: 'kb-std-002',
@@ -45,7 +51,6 @@ const initialData: KnowledgeDocItem[] = [
     views: 256,
     attachments: att('kb-std-002'),
     status: '已发布',
-    reviews: review('kb-std-002', '李建国', '对建设工程领域有很好的参考价值'),
   },
   {
     key: 'kb-std-003',
@@ -60,7 +65,9 @@ const initialData: KnowledgeDocItem[] = [
     views: 485,
     attachments: att('kb-std-003'),
     status: '已发布',
-    reviews: review('kb-std-003', '滕海燕', '等保实施指南非常实用'),
+    reviews: [
+      { key: 'kb-std-003-r1', reviewer: '李建国', content: '等保三级测评部分内容非常实用，我们项目刚好用到！建议后续补充等保2.0与1.0差异对照表。', timestamp: '2025-05-12 09:20:00' },
+    ],
   },
   {
     key: 'kb-tech-001',
@@ -68,13 +75,13 @@ const initialData: KnowledgeDocItem[] = [
     title: '软件开发过程监理技术要点',
     category: '技术文档',
     author: '李建国',
-    publishDate: '2024-10-15',
-    updateDate: '2025-04-08',
+    publishDate: '2025-05-10',
+    updateDate: '2025-06-01',
     tags: ['软件开发', '代码审查', '需求评审'],
     summary: '介绍信息系统工程软件开发过程监理工作要点，包括需求评审、代码审查、测试监理等关键环节',
-    views: 312,
+    views: 112,
     attachments: att('kb-tech-001'),
-    status: '已发布',
+    status: '待审批',
   },
   {
     key: 'kb-tech-002',
@@ -89,6 +96,10 @@ const initialData: KnowledgeDocItem[] = [
     views: 248,
     attachments: att('kb-tech-002'),
     status: '已发布',
+    reviews: [
+      { key: 'kb-tech-002-r1', reviewer: '韦江腾', content: '数据中心建设中关于静电接地的监理要点写得很专业，已作为我们机房改造项目的参考文档。', timestamp: '2025-03-18 16:40:00' },
+      { key: 'kb-tech-002-r2', reviewer: '吴国栋', content: '能否补充UPS负载率计算与冗余设计方面的内容？目前我们有一个项目在纠结2N与N+1的选择。', timestamp: '2025-03-20 11:10:00' },
+    ],
   },
   {
     key: 'kb-tech-003',
@@ -110,13 +121,13 @@ const initialData: KnowledgeDocItem[] = [
     title: '工程变更管理流程详解',
     category: '管理制度',
     author: '韦江腾',
-    publishDate: '2024-06-15',
-    updateDate: '2025-04-20',
+    publishDate: '2025-05-28',
+    updateDate: '2025-06-05',
     tags: ['变更管理', '项目管理', '变更控制'],
     summary: '介绍建设工程变更管理的完整流程，包括变更申请、评估、审批、实施、确认等各环节要点',
-    views: 285,
+    views: 75,
     attachments: att('kb-manage-001'),
-    status: '已发布',
+    status: '待审批',
   },
   {
     key: 'kb-manage-002',
@@ -145,6 +156,10 @@ const initialData: KnowledgeDocItem[] = [
     views: 428,
     attachments: att('kb-case-001'),
     status: '已发布',
+    reviews: [
+      { key: 'kb-case-001-r1', reviewer: '王小平', content: '组织协调部分写得非常到位，对跨部门沟通的困难和解决方案描述真实，值得所有项目经理学习。', timestamp: '2025-05-18 08:50:00' },
+      { key: 'kb-case-001-r2', reviewer: '许琰芳', content: '文中提到的"双周例会+里程碑评审"模式我们也想借鉴，请问有配套的会议纪要模板吗？', timestamp: '2025-05-22 15:30:00' },
+    ],
   },
   {
     key: 'kb-case-002',
@@ -172,7 +187,7 @@ const initialData: KnowledgeDocItem[] = [
     summary: '医疗健康信息系统建设中数据安全与隐私保护的监理工作要点和经验总结',
     views: 98,
     attachments: att('kb-case-003'),
-    status: '已发布',
+    status: '待审批',
   },
   {
     key: 'kb-sec-001',
@@ -215,6 +230,11 @@ const initialData: KnowledgeDocItem[] = [
     views: 265,
     attachments: att('kb-quality-002'),
     status: '已发布',
+    reviews: [
+      { key: 'kb-quality-002-r1', reviewer: '李金花', content: '最佳实践中提到的质量管理五步法非常清晰，我已在项目中应用，效果良好。', timestamp: '2025-05-28 13:20:00' },
+      { key: 'kb-quality-002-r2', reviewer: '蔡海婷', content: '建议在文中补充"需求变更对质量影响的量化评估"方面的实际操作方法，目前这块还是痛点。', timestamp: '2025-06-02 10:05:00' },
+      { key: 'kb-quality-002-r3', reviewer: '王华', content: '整体框架很完整，作为公司内部质量培训教材完全够用。', timestamp: '2025-06-08 14:40:00' },
+    ],
   },
   {
     key: 'kb-law-001',
@@ -231,5 +251,60 @@ const initialData: KnowledgeDocItem[] = [
     status: '已发布',
   },
 ]
+
+// ================== 初始审批记录 ==================
+// 知识文档 - 初始审批记录映射（为"已发布"状态的记录提供历史审批记录）
+//  一级审批：韦江腾（知识管理员）
+//  二级审批：王小平（副总经理 / 终审）
+export const initialKnowledgeApprovalMap: Record<string, ApprovalRecord[]> = {
+  'kb-std-001': [
+    { key: 'kb-std-001-r1', code: 'KB-STD-001-R1', level: 1, reviewer: '韦江腾', status: '通过', comment: '文档内容完整，对GB/T 19668的解读专业，一审通过。', date: '2024-08-10 10:00:00' },
+    { key: 'kb-std-001-r2', code: 'KB-STD-001-R2', level: 2, reviewer: '王小平', status: '通过', comment: '经复核，内容规范且实用价值高，同意发布。', date: '2024-08-12 09:30:00' },
+  ],
+  'kb-std-002': [
+    { key: 'kb-std-002-r1', code: 'KB-STD-002-R1', level: 1, reviewer: '韦江腾', status: '通过', comment: '建设工程规范解读清晰，一审通过。', date: '2024-09-05 14:00:00' },
+    { key: 'kb-std-002-r2', code: 'KB-STD-002-R2', level: 2, reviewer: '王小平', status: '通过', comment: '终审通过，发布。', date: '2024-09-08 10:00:00' },
+  ],
+  'kb-std-003': [
+    { key: 'kb-std-003-r1', code: 'KB-STD-003-R1', level: 1, reviewer: '韦江腾', status: '通过', comment: '等保相关内容专业，一审通过。', date: '2024-07-15 11:00:00' },
+    { key: 'kb-std-003-r2', code: 'KB-STD-003-R2', level: 2, reviewer: '王小平', status: '通过', comment: '同意发布。', date: '2024-07-18 09:00:00' },
+  ],
+  'kb-tech-002': [
+    { key: 'kb-tech-002-r1', code: 'KB-TECH-002-R1', level: 1, reviewer: '韦江腾', status: '通过', comment: '数据中心机房建设要点全面，一审通过。', date: '2024-11-18 15:30:00' },
+    { key: 'kb-tech-002-r2', code: 'KB-TECH-002-R2', level: 2, reviewer: '王小平', status: '通过', comment: '同意发布。', date: '2024-11-20 09:00:00' },
+  ],
+  'kb-tech-003': [
+    { key: 'kb-tech-003-r1', code: 'KB-TECH-003-R1', level: 1, reviewer: '韦江腾', status: '通过', comment: '云迁移监理实践指南内容实用，一审通过。', date: '2025-01-08 10:00:00' },
+    { key: 'kb-tech-003-r2', code: 'KB-TECH-003-R2', level: 2, reviewer: '王小平', status: '通过', comment: '同意发布。', date: '2025-01-10 09:00:00' },
+  ],
+  'kb-manage-002': [
+    { key: 'kb-manage-002-r1', code: 'KB-MAN-002-R1', level: 1, reviewer: '韦江腾', status: '通过', comment: '监理文档管理规范内容完整，一审通过。', date: '2024-08-20 14:00:00' },
+    { key: 'kb-manage-002-r2', code: 'KB-MAN-002-R2', level: 2, reviewer: '王小平', status: '通过', comment: '同意发布。', date: '2024-08-22 10:00:00' },
+  ],
+  'kb-case-001': [
+    { key: 'kb-case-001-r1', code: 'KB-CASE-001-R1', level: 1, reviewer: '韦江腾', status: '通过', comment: '政务平台项目案例经验丰富，一审通过。', date: '2024-12-08 11:00:00' },
+    { key: 'kb-case-001-r2', code: 'KB-CASE-001-R2', level: 2, reviewer: '王小平', status: '通过', comment: '同意发布。', date: '2024-12-10 09:00:00' },
+  ],
+  'kb-case-002': [
+    { key: 'kb-case-002-r1', code: 'KB-CASE-002-R1', level: 1, reviewer: '韦江腾', status: '通过', comment: '数字孪生监理实践案例新颖，一审通过。', date: '2025-04-08 15:00:00' },
+    { key: 'kb-case-002-r2', code: 'KB-CASE-002-R2', level: 2, reviewer: '王小平', status: '通过', comment: '同意发布。', date: '2025-04-10 10:00:00' },
+  ],
+  'kb-sec-001': [
+    { key: 'kb-sec-001-r1', code: 'KB-SEC-001-R1', level: 1, reviewer: '韦江腾', status: '通过', comment: '安全监理工作手册内容全面，一审通过。', date: '2024-09-22 14:00:00' },
+    { key: 'kb-sec-001-r2', code: 'KB-SEC-001-R2', level: 2, reviewer: '王小平', status: '通过', comment: '同意发布。', date: '2024-09-25 09:30:00' },
+  ],
+  'kb-quality-001': [
+    { key: 'kb-quality-001-r1', code: 'KB-QUAL-001-R1', level: 1, reviewer: '韦江腾', status: '通过', comment: '软件测试监理指南内容专业，一审通过。', date: '2025-01-22 10:00:00' },
+    { key: 'kb-quality-001-r2', code: 'KB-QUAL-001-R2', level: 2, reviewer: '王小平', status: '通过', comment: '同意发布。', date: '2025-01-25 09:00:00' },
+  ],
+  'kb-quality-002': [
+    { key: 'kb-quality-002-r1', code: 'KB-QUAL-002-R1', level: 1, reviewer: '韦江腾', status: '通过', comment: '质量管理最佳实践总结到位，一审通过。', date: '2025-02-18 15:00:00' },
+    { key: 'kb-quality-002-r2', code: 'KB-QUAL-002-R2', level: 2, reviewer: '王小平', status: '通过', comment: '同意发布。', date: '2025-02-20 09:00:00' },
+  ],
+  'kb-law-001': [
+    { key: 'kb-law-001-r1', code: 'KB-LAW-001-R1', level: 1, reviewer: '韦江腾', status: '通过', comment: '建筑法要点解读规范，一审通过。', date: '2024-07-28 14:00:00' },
+    { key: 'kb-law-001-r2', code: 'KB-LAW-001-R2', level: 2, reviewer: '王小平', status: '通过', comment: '同意发布。', date: '2024-08-01 09:00:00' },
+  ],
+}
 
 export default initialData

@@ -4,7 +4,7 @@ import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import { usePersistedState } from '../../hooks/usePersistedState'
 import { useUser } from '../../context/UserContext'
-import initialData from '../../data/safetyIncidents'
+import initialData, { initialIncidentApprovalMap } from '../../data/safetyIncidents'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import { formatCurrency } from '../../utils/format'
 import type { SafetyIncidentItem, SFIncidentLevel, SFIncidentStatus, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
@@ -15,27 +15,22 @@ import { DocumentUploader, DocumentList } from '../../components/DocumentUploade
 const { Option } = Select
 const { TextArea } = Input
 
-const nextIncidentStatus: Record<string, SFIncidentStatus> = {
-  '待处理': '待审批',
-  '待审批': '处理中',
-  '处理中': '已处理',
-  '已处理': '已归档',
-}
 
 const incidentStatusColor = (status: string): string => {
   switch (status) {
     case '待处理':
       return 'gold'
-    case '待审批':
-      return 'orange'
     case '处理中':
       return 'blue'
     case '已处理':
+    case '待审批':
+      return 'orange'
+    case '一审通过':
+      return 'cyan'
+    case '已审批':
       return 'green'
     case '已驳回':
       return 'volcano'
-    case '已归档':
-      return 'purple'
     default:
       return 'gray'
   }
@@ -57,7 +52,7 @@ const incidentLevelColor = (level: string): string => {
 const IncidentPanel: React.FC = () => {
   const [list, setList] = usePersistedState<SafetyIncidentItem[]>('safety-incident', initialData)
   const { currentUser } = useUser()
-const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('safetyManagement-incidentPage-approval', {})
+const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('safetyManagement-incidentPage-approval', initialIncidentApprovalMap)
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -181,8 +176,11 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
         <Space size="small" style={{ display: 'flex', flexWrap: 'wrap' }}>
           <Button type="link" icon={<EyeOutlined />} size="small" onClick={() => handleView(record)}>查看</Button>
           <Button type="link" icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)}>编辑</Button>
-          {record.status !== '已归档' && record.status !== '已完成' && (
-            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>推进流程</Button>
+          {record.status === '已处理' && (currentUser.role === '监理工程师' || currentUser.role === '总监理工程师') && (
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>审批</Button>
+          )}
+          {record.status === '一审通过' && currentUser.role === '总监理工程师' && (
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>审批</Button>
           )}
           <Popconfirm
             title="确定删除此安全事故记录？"
@@ -316,11 +314,10 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
     if (!currentItem) return
     const key = currentItem.key
     const existingRecords = approvalMap[key] || []
-    const nextLevel = existingRecords.length + 1
-    const chain = APPROVAL_CHAINS.PROJECT
-    const isLast = nextLevel >= chain.levels.length
+    const nextLevel = currentItem.status === '一审通过' ? 2 : (existingRecords.length + 1)
+
     const newRecord: ApprovalRecord = {
-      key: `${key}-${nextLevel}`,
+      key: `${key}-r${nextLevel}-${Date.now()}`,
       code: `${currentItem.code}-R${nextLevel}`,
       level: nextLevel,
       reviewer: payload.reviewer,
@@ -332,17 +329,11 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
 
     if (payload.status === '驳回') {
       setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '已驳回' as SFIncidentStatus } : item); return r })
-      message.success('已驳回')
+      message.success('已驳回，返回已处理')
     } else {
-      const nextStatus = nextIncidentStatus[currentItem.status] || '已归档' as SFIncidentStatus
-      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: nextStatus } : item); return r })
-      if (nextStatus === '已归档') {
-        message.success('事故已归档')
-      } else if (nextStatus === '已处理') {
-        message.success('事故已处理完毕')
-      } else {
-        message.success('审批已提交至下一阶段')
-      }
+      const newStatus: SFIncidentStatus = currentItem.status === '已处理' ? '一审通过' : '已审批'
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: newStatus } : item); return r })
+      message.success(newStatus === '已审批' ? '终审已通过' : '一审通过，等待总监理工程师终审')
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)
@@ -407,8 +398,9 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
           <Option value="待处理">待处理</Option>
           <Option value="处理中">处理中</Option>
           <Option value="已处理">已处理</Option>
-          <Option value="待审批">待审批</Option>
-          <Option value="已归档">已归档</Option>
+          <Option value="一审通过">一审通过</Option>
+          <Option value="已审批">已审批</Option>
+          <Option value="已驳回">已驳回</Option>
         </Select>
       </Form.Item>
       <Form.Item name="attachments" label="附件">
@@ -443,8 +435,9 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
               <Option value="待处理">待处理</Option>
               <Option value="处理中">处理中</Option>
               <Option value="已处理">已处理</Option>
-              <Option value="待审批">待审批</Option>
-              <Option value="已归档">已归档</Option>
+              <Option value="一审通过">一审通过</Option>
+              <Option value="已审批">已审批</Option>
+              <Option value="已驳回">已驳回</Option>
             </Select>
           </Form.Item>
           <Form.Item name="keyword">

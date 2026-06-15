@@ -179,8 +179,8 @@ const menuItems = [
     icon: <WalletOutlined />,
     label: '合同管理',
     children: [
-      { key: '/contract/list', label: <Link to="/contract/list">合同列表</Link> },
-      { key: '/contract/payment', label: <Link to="/contract/payment">合同支付</Link> },
+      { key: '/contract/list', label: <Link to="/contract/list">建设合同管理</Link> },
+      { key: '/contract/payment', label: <Link to="/contract/payment">建设合同支付</Link> },
     ],
   },
   {
@@ -332,8 +332,12 @@ function Layout() {
             style={{ borderRight: 0, background: '#fff' }}
             items={menuItems as any}
             onClick={(e) => {
-              if (e.key && !e.key.startsWith('/project/overview')) {
-                // Link 已处理跳转；此处保留兜底
+              // 点击一级叶子项（如工作台）或二级叶子项时，收起所有已展开的二级菜单
+              const isLeaf = !menuItems.some(
+                (item: any) => item.key === e.key && Array.isArray(item.children) && item.children.length > 0
+              )
+              if (isLeaf) {
+                setOpenKeys([])
               }
             }}
           />

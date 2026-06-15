@@ -1,4 +1,4 @@
-import type { ScheduleReportItem, DocumentAttachment } from '../types/projectManagement'
+import type { ScheduleReportItem, DocumentAttachment, ApprovalRecord } from '../types/projectManagement'
 
 const att = (seed: string): DocumentAttachment[] => [
   {
@@ -24,7 +24,7 @@ const initialData: ScheduleReportItem[] = [
     progressSummary: '本周完成系统集成测试，总体进度72%；按计划推进。',
     issues: '接口联调耗时超预期；数据库索引优化仍在进行。',
     nextPlan: '下周启动用户验收测试准备工作。',
-    status: '已发布',
+    status: '一审通过',
     attachments: att('sr1'),
   },
   {
@@ -38,7 +38,7 @@ const initialData: ScheduleReportItem[] = [
     progressSummary: '指挥中心大屏与视频会议升级已完成验收，船艇卫星定位模块持续推进中。',
     issues: '卫星定位远海丢包率偏高。',
     nextPlan: '推进专项优化方案评审与实施。',
-    status: '已发布',
+    status: '已审批',
     attachments: att('sr2'),
   },
   {
@@ -52,7 +52,7 @@ const initialData: ScheduleReportItem[] = [
     progressSummary: '需求阶段整体进度正常，已完成与各业务部门关键访谈。',
     issues: '预警推送通道需进一步明确责任单位。',
     nextPlan: '进入设计与原型评审阶段。',
-    status: '草稿',
+    status: '待审批',
     attachments: att('sr3'),
   },
   {
@@ -70,5 +70,15 @@ const initialData: ScheduleReportItem[] = [
     attachments: att('sr4'),
   },
 ]
+
+export const initialScheduleReportApprovalMap: Record<string, ApprovalRecord[]> = {
+  'sr-1': [
+    { key: 'sr-1-r1', code: 'SR-2025-W23-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '周报内容详实，进度数据准确，一审通过。', date: '2025-06-10 10:00:00' },
+  ],
+  'sr-2': [
+    { key: 'sr-2-r1', code: 'SR-2025-M5-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '月报总结到位，一审通过。', date: '2025-06-03 16:00:00' },
+    { key: 'sr-2-r2', code: 'SR-2025-M5-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '终审通过，报告质量良好。', date: '2025-06-04 10:00:00' },
+  ],
+}
 
 export default initialData

@@ -4,8 +4,8 @@
 // ============================================================
 
 // ---------- 项目 ----------
-export type ProjectStatus = '启动阶段' | '进行中' | '即将完工' | '已完成'
-export type ApprovalStatus = '待审批' | '已通过' | '已驳回'
+// 项目状态：未启动（新增默认值，不可手工修改）、已启动（开工申请审批通过后自动设置）、已验收（竣工验收审批通过后自动设置）
+export type ProjectStatus = '未启动' | '已启动' | '已验收'
 export type ProjectType =
   | '信息系统建设'
   | '平台升级改造'
@@ -26,8 +26,6 @@ export interface ProjectItem {
   type: ProjectType
   scale: ProjectScale
   status: ProjectStatus
-  approvalStatus: ApprovalStatus
-  approver?: string
   startDate: string
   endDate: string
   investment: number
@@ -313,7 +311,7 @@ export interface KnowledgeItem {
 // ============================================================
 // 合同管理模块（与项目管理中监理合同不同，此处为建设合同）
 // ============================================================
-export type ContractMgmtStatus = '待签订' | '执行中' | '即将到期' | '已完成' | '已中止'
+export type ContractMgmtStatus = '待签订' | '待审批' | '一审通过' | '已审批' | '执行中' | '即将到期' | '已完成' | '已中止'
 
 export interface ContractMgmtItem {
   key: string
@@ -333,7 +331,7 @@ export interface ContractMgmtItem {
 
 export type PaymentMgmtStatus =
   | '待审批'
-  | '审批中'
+  | '一审通过'
   | '已驳回'
   | '已审批'
   | '待支付'
@@ -367,7 +365,6 @@ export interface ProjectSearchParams {
   keyword?: string
   type?: ProjectType
   status?: ProjectStatus
-  approvalStatus?: ApprovalStatus
   dateRange?: [Dayjs, Dayjs] | null
 }
 
@@ -588,10 +585,10 @@ export type SCPhase =
   | '测试'
   | '部署'
   | '验收'
-export type SCPlanStatus = '待审批' | '已审批' | '已驳回'
+export type SCPlanStatus = '待审批' | '一审通过' | '已审批' | '已驳回'
 export type SCTrackStatus = '正常' | '滞后' | '提前' | '已完成'
 export type SCReportType = '周报' | '月报' | '专项报告'
-export type SCReportStatus = '草稿' | '待审批' | '已发布'
+export type SCReportStatus = '待审批' | '一审通过' | '已审批' | '已驳回'
 
 export interface SchedulePlanItem {
   key: string
@@ -658,7 +655,7 @@ export type CCBudgetStatus =
   | '已审批'
   | '已驳回'
 export type CCTrackStatus = '正常' | '超支' | '节约'
-export type CCAnalysisStatus = '草稿' | '待审批' | '已发布'
+export type CCAnalysisStatus = '草稿' | '待审批' | '一审通过' | '已审批'
 
 export interface CostBudgetItem {
   key: string
@@ -755,7 +752,7 @@ export type SFCheckType =
   | '节日检查'
   | '季节性检查'
 export type SFLevel = '低' | '中' | '高' | '极高'
-export type SFCheckStatus = '待审批' | '一审中' | '已通过' | '已驳回'
+export type SFCheckStatus = '待审批' | '一审通过' | '已审批' | '已驳回'
 export type SFTrainingStatus = '已完成' | '计划中' | '进行中'
 export type SFIncidentLevel = '一般事故' | '较大事故' | '重大事故'
 export type SFIncidentStatus =
@@ -763,7 +760,9 @@ export type SFIncidentStatus =
   | '处理中'
   | '已处理'
   | '待审批'
-  | '已归档'
+  | '一审通过'
+  | '已审批'
+  | '已驳回'
 
 export interface SafetyCheckItem {
   key: string
@@ -833,7 +832,7 @@ export type IMDocType =
   | '其他'
 
 export type IMDocUploader = '承建单位' | '监理工程师'
-export type IMDocStatus = '待审批' | '审批中' | '已发布' | '已驳回'
+export type IMDocStatus = '待审批' | '一审通过' | '已审批' | '已驳回'
 export type IMReportType =
   | '监理周报'
   | '监理月报'
@@ -841,11 +840,9 @@ export type IMReportType =
   | '工作联系单'
   | '监理通知'
 export type IMReportStatus =
-  | '草稿'
   | '待审批'
-  | '一审中'
   | '一审通过'
-  | '已发布'
+  | '已审批'
   | '已驳回'
 export type IMArchiveStatus = '待归档' | '归档中' | '已归档' | '已调阅'
 
@@ -1015,15 +1012,17 @@ export type ACResult = '合格' | '不合格' | '有条件合格' | '待复查'
 export type ACCheckStatus =
   | '待安排'
   | '待验收'
+  | '待审批'
   | '进行中'
   | '已完成'
+  | '一审通过'
+  | '已审批'
   | '已驳回'
 export type ACReportStatus =
   | '草稿'
   | '待审批'
-  | '一审中'
   | '一审通过'
-  | '已发布'
+  | '已审批'
   | '已驳回'
 export type ACArchiveCategory =
   | '合同档案'

@@ -6,7 +6,7 @@ import { usePersistedState } from '../../hooks/usePersistedState'
 import { useUser } from '../../context/UserContext'
 import initialData from '../../data/acceptanceChecks'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
-import type { AcceptanceCheckItem, ACCheckType, ACCheckStatus, ACResult, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
+import type { AcceptanceCheckItem, ACCheckType, ACCheckStatus, ACResult, DocumentAttachment, ApprovalRecord, ProjectItem } from '../../types/projectManagement'
 import { DetailModal, descItem, descText, CompactTableCssOnly } from '../../components/DetailModal'
 import { ReviewModal, ReviewTimeline, getApprovalRecords, APPROVAL_CHAINS } from '../../components/ReviewFlow'
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
@@ -16,12 +16,11 @@ const { TextArea } = Input
 
 const checkStatusColor = (status: string): string => {
   switch (status) {
-    case '待安排':
-      return 'default'
-    case '待验收':
+    case '待审批':
+      return 'gold'
+    case '一审通过':
       return 'cyan'
-    case '进行中':
-      return 'blue'
+    case '已审批':
     case '已完成':
       return 'green'
     case '已驳回':
@@ -47,13 +46,14 @@ const resultColor = (result: string): string => {
 }
 
 const typeOptions: ACCheckType[] = ['分项验收', '分部验收', '单位工程验收', '专项验收', '竣工验收']
-const statusOptions: ACCheckStatus[] = ['待安排', '待验收', '进行中', '已完成', '已驳回']
+const statusOptions: ACCheckStatus[] = ['待审批', '一审通过', '已审批', '已驳回']
 const resultOptions: ACResult[] = ['合格', '不合格', '有条件合格', '待复查']
 
 const CheckPanel: React.FC = () => {
   const [list, setList] = usePersistedState<ACCheckItem[]>('accept-check', initialData)
+  const [projectData, setProjectData] = usePersistedState<ProjectItem[]>('project-list', initialProjectData)
   const { currentUser } = useUser()
-const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('acceptanceFiling-checkPage-approval', {})
+  const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('acceptanceFiling-checkPage-approval', {})
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -167,8 +167,11 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
         <Space size="small" style={{ display: 'flex', flexWrap: 'wrap' }}>
           <Button type="link" icon={<EyeOutlined />} size="small" onClick={() => handleView(record)}>查看</Button>
           <Button type="link" icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)}>编辑</Button>
-          {record.status === '待验收' && (
-            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>{record.status === '审批中' ? '审批' : '发起审批'}</Button>
+          {record.status === '待审批' && (currentUser.role === '监理工程师' || currentUser.role === '总监理工程师') && (
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>审批</Button>
+          )}
+          {record.status === '一审通过' && currentUser.role === '总监理工程师' && (
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>审批</Button>
           )}
           <Popconfirm
             title="确定删除此验收检查？"
@@ -302,11 +305,10 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
     if (!currentItem) return
     const key = currentItem.key
     const existingRecords = approvalMap[key] || []
-    const nextLevel = existingRecords.length + 1
-    const chain = APPROVAL_CHAINS.PROJECT
-    const isLast = nextLevel >= chain.levels.length
+    const nextLevel = currentItem.status === '一审通过' ? 2 : (existingRecords.length + 1)
+
     const newRecord: ApprovalRecord = {
-      key: `${key}-${nextLevel}`,
+      key: `${key}-r${nextLevel}-${Date.now()}`,
       code: `${currentItem.code}-R${nextLevel}`,
       level: nextLevel,
       reviewer: payload.reviewer,
@@ -318,10 +320,25 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
 
     if (payload.status === '驳回') {
       setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '已驳回' as ACCheckStatus } : item); return r })
-      message.success('已驳回')
+      message.success('已驳回，返回待审批')
     } else {
-      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '已完成' as ACCheckStatus } : item); return r })
-      message.success(isLast ? '审批已通过' : '审批已提交至下一级')
+      const newStatus: ACCheckStatus = currentItem.status === '待审批' ? '一审通过' : '已审批'
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: newStatus } : item); return r })
+
+      // 验收备案模块与项目列表状态联动：
+      // 当竣工验收类型的检查最终审批通过后，将对应项目状态自动更新为"已验收"
+      if (newStatus === '已审批' && currentItem.type === '竣工验收') {
+        setProjectData(prev =>
+          prev.map(p =>
+            p.code === currentItem.projectCode ? { ...p, status: '已验收' } : p
+          )
+        )
+        message.success(`竣工验收终审已通过，对应项目状态已同步为"已验收"`)
+      } else if (newStatus === '已审批') {
+        message.success('终审已通过')
+      } else {
+        message.success('一审通过，等待总监理工程师终审')
+      }
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)
@@ -332,7 +349,7 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
   ))
 
   const renderFormBody = (isEdit: boolean) => (
-    <Form form={isEdit ? editForm : addForm} layout="vertical" initialValues={{ type: '分项验收' as ACCheckType, status: '待安排' as ACCheckStatus, result: '合格' as ACResult }}>
+    <Form form={isEdit ? editForm : addForm} layout="vertical" initialValues={{ type: '分项验收' as ACCheckType, status: '待审批' as ACCheckStatus, result: '合格' as ACResult }}>
       <div style={{ display: 'flex', gap: 16 }}>
         <Form.Item name="code" label="编号" rules={[{ required: true, message: '请输入编号' }]} style={{ flex: 1 }}>
           <Input placeholder="请输入编号" />

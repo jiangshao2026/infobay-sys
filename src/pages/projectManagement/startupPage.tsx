@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { usePersistedState } from '../../hooks/usePersistedState'
+import { useUser } from '../../context/UserContext'
+import initialProjectData from '../../data/projects'
+import type { ProjectItem } from '../../types/projectManagement'
 import {
   Card,
   Table,
@@ -61,7 +64,7 @@ const initialData: StartupItem[] = [
     key: 's1',
     code: 'KG-2025-001',
     projectCode: 'XB2005-0037',
-    projectName: '广东省市场监督管理局信息化项目（2025年第二批）',
+    projectName: '广东省市场监管局信息化项目（2025年第二批）',
     applicant: '广东省信息中心',
     planDate: '2025-03-15',
     estimatedDays: 470,
@@ -86,7 +89,7 @@ const initialData: StartupItem[] = [
         key: 's1-r2',
         code: 'KG-2025-001-R2',
         level: 2,
-        reviewer: '总监理工程师-李己',
+        reviewer: '总监理工程师-韦江腾',
         status: '通过',
         comment: '已复核开工准备工作，同意签发开工令。',
         date: '2025-03-12 09:15:00',
@@ -97,6 +100,42 @@ const initialData: StartupItem[] = [
   {
     key: 's2',
     code: 'KG-2025-002',
+    projectCode: 'XB2005-0062',
+    projectName: '广东省海洋综合执法总队综合指挥中心升级改造项目',
+    applicant: '广东省海洋与渔业信息中心',
+    planDate: '2025-02-01',
+    estimatedDays: 365,
+    description: '承建单位已完成升级改造方案评审及进场准备，申请于2025-02-01正式开工。',
+    attachments: [
+      { name: '升级改造实施方案.pdf', url: '#' },
+      { name: '设备进场清单.pdf', url: '#' },
+    ],
+    status: '已审批',
+    approvals: [
+      {
+        key: 's2-r1',
+        code: 'KG-2025-002-R1',
+        level: 1,
+        reviewer: '监理工程师-王晓',
+        status: '通过',
+        comment: '开工条件已具备，方案可行，同意提交总监审批。',
+        date: '2025-01-25 11:00:00',
+      },
+      {
+        key: 's2-r2',
+        code: 'KG-2025-002-R2',
+        level: 2,
+        reviewer: '总监理工程师-韦江腾',
+        status: '通过',
+        comment: '已复核，同意签发开工令。',
+        date: '2025-01-28 09:30:00',
+      },
+    ],
+    createTime: '2025-01-20 10:00:00',
+  },
+  {
+    key: 's3',
+    code: 'KG-2025-003',
     projectCode: 'XB2005-0156',
     projectName: '广东省政务服务和数据管理局数字政府基础设施（2025年）项目',
     applicant: '广东省数字政府建设运营中心',
@@ -107,71 +146,208 @@ const initialData: StartupItem[] = [
       { name: '项目实施计划书.pdf', url: '#' },
       { name: '总体设计方案.pdf', url: '#' },
     ],
-    status: '审批中',
+    status: '已审批',
     approvals: [
       {
-        key: 's2-r1',
-        code: 'KG-2025-002-R1',
+        key: 's3-r1',
+        code: 'KG-2025-003-R1',
         level: 1,
-        reviewer: '监理工程师-王晓',
+        reviewer: '监理工程师-周宁',
         status: '通过',
         comment: '开工条件已具备，实施方案可行，同意提交总监审批。',
-        date: '2025-01-05 11:00:00',
+        date: '2025-01-05 14:20:00',
+      },
+      {
+        key: 's3-r2',
+        code: 'KG-2025-003-R2',
+        level: 2,
+        reviewer: '总监理工程师-韦江腾',
+        status: '通过',
+        comment: '已复核开工准备工作，同意签发开工令。',
+        date: '2025-01-08 10:00:00',
       },
     ],
-    createTime: '2025-01-03 10:30:00',
-  },
-  {
-    key: 's3',
-    code: 'KG-2025-003',
-    projectCode: 'XB2005-0234',
-    projectName: '广州市公安局天河区分局2025年新一代智慧情报指挥中心建设项目',
-    applicant: '广州市公安局天河区分局',
-    planDate: '2025-07-01',
-    estimatedDays: 480,
-    description: '承建单位已完成施工图设计及材料进场准备，申请开工。',
-    attachments: [
-      { name: '智慧指挥中心建设方案.pdf', url: '#' },
-      { name: '材料清单及检验报告.pdf', url: '#' },
-      { name: '安全文明施工方案.docx', url: '#' },
-    ],
-    status: '待审批',
-    createTime: '2025-06-20 16:20:00',
+    createTime: '2025-01-03 09:30:00',
   },
   {
     key: 's4',
     code: 'KG-2025-004',
-    projectCode: 'XB2005-0301',
-    projectName: '荔湾区排水管网基础数据完善及厂网河一体化信息系统建设项目',
-    applicant: '广州市荔湾区水务局',
-    planDate: '2024-11-10',
-    estimatedDays: 600,
-    description: '承建单位已完成施工组织设计及设备进场申请开工。',
+    projectCode: 'XB2005-0267',
+    projectName: '江西省统计局"赣数智"一体化平台项目',
+    applicant: '江西省统计信息中心',
+    planDate: '2025-05-20',
+    estimatedDays: 420,
+    description: '承建单位已完成平台架构设计及人员进场准备，申请正式开工。',
     attachments: [
-      { name: '排水管网施工方案.pdf', url: '#' },
+      { name: '平台架构设计说明书.pdf', url: '#' },
+      { name: '人员及资源配置清单.xlsx', url: '#' },
     ],
-    status: '已驳回',
+    status: '已审批',
     approvals: [
       {
         key: 's4-r1',
         code: 'KG-2025-004-R1',
         level: 1,
-        reviewer: '监理工程师-张明',
+        reviewer: '监理工程师-黄伟',
         status: '通过',
-        comment: '开工条件基本满足，同意提交总监审批。',
-        date: '2024-11-05 10:00:00',
+        comment: '开工条件已具备，实施方案可行，同意提交总监审批。',
+        date: '2025-05-15 10:00:00',
       },
       {
         key: 's4-r2',
         code: 'KG-2025-004-R2',
         level: 2,
-        reviewer: '总监理工程师-李己',
-        status: '驳回',
-        comment: '施工方案中缺少排水管网建模专项方案，请补充完善后重新提交。',
-        date: '2024-11-08 09:30:00',
+        reviewer: '总监理工程师-韦江腾',
+        status: '通过',
+        comment: '已复核，同意签发开工令。',
+        date: '2025-05-18 09:30:00',
       },
     ],
-    createTime: '2024-11-03 11:00:00',
+    createTime: '2025-05-10 15:00:00',
+  },
+  {
+    key: 's6',
+    code: 'KG-2025-006',
+    projectCode: 'XB2005-0089',
+    projectName: '广西智慧海洋监管服务平台建设项目',
+    applicant: '广西壮族自治区海洋局',
+    planDate: '2025-06-10',
+    estimatedDays: 570,
+    description: '承建单位已完成海洋监管服务平台的需求梳理与方案编制，申请于2025-06-10正式开工。',
+    attachments: [
+      { name: '智慧海洋平台建设方案.pdf', url: '#' },
+      { name: '人员及设备清单.xlsx', url: '#' },
+    ],
+    status: '已审批',
+    approvals: [
+      {
+        key: 's6-r1',
+        code: 'KG-2025-006-R1',
+        level: 1,
+        reviewer: '监理工程师-滕海燕',
+        status: '通过',
+        comment: '开工条件已具备，实施方案可行，同意提交总监审批。',
+        date: '2025-06-05 10:00:00',
+      },
+      {
+        key: 's6-r2',
+        code: 'KG-2025-006-R2',
+        level: 2,
+        reviewer: '总监理工程师-韦江腾',
+        status: '通过',
+        comment: '已复核，同意签发开工令。',
+        date: '2025-06-07 10:00:00',
+      },
+    ],
+    createTime: '2025-06-03 09:00:00',
+  },
+  {
+    key: 's7',
+    code: 'KG-2025-007',
+    projectCode: 'XB2005-0123',
+    projectName: '广州市民政局2025年升级改造项目',
+    applicant: '广州市民政信息中心',
+    planDate: '2025-04-20',
+    estimatedDays: 255,
+    description: '承建单位已完成民政业务系统升级改造的前期准备工作，申请正式开工。',
+    attachments: [
+      { name: '民政系统升级改造方案.pdf', url: '#' },
+      { name: '安全技术方案.pdf', url: '#' },
+    ],
+    status: '已审批',
+    approvals: [
+      {
+        key: 's7-r1',
+        code: 'KG-2025-007-R1',
+        level: 1,
+        reviewer: '监理工程师-滕海燕',
+        status: '通过',
+        comment: '开工条件已具备，方案可行。',
+        date: '2025-04-16 10:00:00',
+      },
+      {
+        key: 's7-r2',
+        code: 'KG-2025-007-R2',
+        level: 2,
+        reviewer: '总监理工程师-韦江腾',
+        status: '通过',
+        comment: '已复核，同意签发开工令。',
+        date: '2025-04-18 09:30:00',
+      },
+    ],
+    createTime: '2025-04-12 09:00:00',
+  },
+  {
+    key: 's8',
+    code: 'KG-2024-005',
+    projectCode: 'XB2005-0189',
+    projectName: '广东省韩江流域潮州供水枢纽数字孪生平台建设（2024年）项目',
+    applicant: '广东省水利厅',
+    planDate: '2024-08-15',
+    estimatedDays: 380,
+    description: '承建单位已完成数字孪生平台需求及方案评审，申请于2024-08-15正式开工。',
+    attachments: [
+      { name: '数字孪生平台建设方案.pdf', url: '#' },
+      { name: '数据治理及仿真需求说明书.pdf', url: '#' },
+    ],
+    status: '已审批',
+    approvals: [
+      {
+        key: 's8-r1',
+        code: 'KG-2024-005-R1',
+        level: 1,
+        reviewer: '监理工程师-滕海燕',
+        status: '通过',
+        comment: '开工条件已具备，符合水利项目管理要求。',
+        date: '2024-08-10 10:00:00',
+      },
+      {
+        key: 's8-r2',
+        code: 'KG-2024-005-R2',
+        level: 2,
+        reviewer: '总监理工程师-韦江腾',
+        status: '通过',
+        comment: '已复核，同意签发开工令。',
+        date: '2024-08-12 09:30:00',
+      },
+    ],
+    createTime: '2024-08-08 14:00:00',
+  },
+  {
+    key: 's9',
+    code: 'KG-2025-009',
+    projectCode: 'XB2005-0345',
+    projectName: '顺德区医疗健康信息系统一体化建设项目',
+    applicant: '佛山市顺德区卫生健康局',
+    planDate: '2025-06-01',
+    estimatedDays: 670,
+    description: '承建单位已完成医疗健康信息系统一体化建设的前期准备工作，申请正式开工。',
+    attachments: [
+      { name: '医疗健康信息系统建设方案.pdf', url: '#' },
+      { name: '数据安全与隐私保护方案.pdf', url: '#' },
+    ],
+    status: '已审批',
+    approvals: [
+      {
+        key: 's9-r1',
+        code: 'KG-2025-009-R1',
+        level: 1,
+        reviewer: '监理工程师-滕海燕',
+        status: '通过',
+        comment: '开工条件已具备，实施方案可行。',
+        date: '2025-05-26 10:00:00',
+      },
+      {
+        key: 's9-r2',
+        code: 'KG-2025-009-R2',
+        level: 2,
+        reviewer: '总监理工程师-韦江腾',
+        status: '通过',
+        comment: '已复核，同意签发开工令。',
+        date: '2025-05-28 09:30:00',
+      },
+    ],
+    createTime: '2025-05-22 09:00:00',
   },
 ]
 
@@ -183,7 +359,9 @@ const STATUS_COLORS: Record<StartupItem['status'], string> = {
 }
 
 function StartupPage() {
+  const { currentUser } = useUser()
   const [data, setData] = usePersistedState<StartupItem[]>('project-startup', initialData)
+  const [projectData, setProjectData] = usePersistedState<ProjectItem[]>('project-list', initialProjectData)
   const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('projectManagement-startupPage-approval', {})
   const [keyword, setKeyword] = useState('')
   const [statusFilter, setStatusFilter] = useState<string | undefined>()
@@ -351,7 +529,18 @@ function StartupPage() {
         : prev
     )
     setIsReviewModalVisible(false)
-    message.success(`审批已提交，当前状态：${nextStatus}`)
+
+    // 项目启动模块与项目列表状态联动：当开工申请最终审批通过后，自动将对应项目状态更新为"已启动"
+    if (nextStatus === '已审批') {
+      setProjectData(prev =>
+        prev.map(p =>
+          p.code === currentItem.projectCode ? { ...p, status: '已启动' } : p
+        )
+      )
+      message.success(`审批已提交，当前状态：${nextStatus}，项目状态已同步为"已启动"`)
+    } else {
+      message.success(`审批已提交，当前状态：${nextStatus}`)
+    }
   }
 
   const getDocContext = (item: StartupItem) => {
@@ -821,6 +1010,7 @@ function StartupPage() {
         onClose={() => { setIsReviewModalVisible(false); setCurrentItem(null) }}
         onSubmit={handleReviewSubmit}
         reviewerOptions={APPROVAL_CHAINS.STARTUP.reviewerOptions}
+        currentUser={currentUser?.name}
         defaultReviewer={(() => {
           const chain = APPROVAL_CHAINS.STARTUP
           const level = (currentItem?.approvals?.length || 0) + 1

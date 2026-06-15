@@ -69,14 +69,15 @@ export const APPROVAL_CHAINS: Record<ApprovalChainType, ApprovalChain> = {
     type: 'KNOWLEDGE',
     levels: ['知识管理员初审', '分管副总经理审批'],
     reviewers: ['韦江腾', '王小平'],
+    roles: ['总监理工程师', '副总经理'],
     defaultComments: [
-      '文档内容符合知识库规范，初审通过。',
-      '终审通过，同意发布。',
+      '文档内容完整、格式规范，符合知识库发布要求，初审通过。',
+      '内容经复核，业务价值明确，终审通过，同意发布。',
     ],
-    reviewerOptions: ['韦江腾', '王小平', '滕海燕'],
+    reviewerOptions: ['韦江腾', '王小平'],
     finalApprovedStatus: '已发布',
-    rejectedStatus: '草稿',
-    inProgressStatus: '待审批',
+    rejectedStatus: '待审批',
+    inProgressStatus: '一审通过',
   },
   PROJECT: {
     type: 'PROJECT',
@@ -398,8 +399,10 @@ const STATUS_APPROVED = new Set([
   '已审批', '已通过', '已批准', '已完成', '已执行', '已发布',
   '已关闭', '已整改', '已复查', '已实施', '已收款', '已支付',
   '执行中', '即将到期', '正常', '提前', '已归档', '已调阅', '已签订',
-  '一审通过', '已支付',
+  '已支付',
 ])
+/** 部分通过类：仅一审通过，二审尚未完成 */
+const STATUS_PARTIAL = new Set(['一审通过'])
 /** 驳回类：该状态视为流程中断 */
 const STATUS_REJECTED = new Set(['已驳回', '不通过'])
 /** 待处理类：该状态视为尚未开始或进行中，不显示默认通过记录 */
@@ -456,6 +459,19 @@ export function getApprovalRecords(
         date: `${baseDate} 09:${String(10 + idx * 15).padStart(2, '0')}:00`,
       }
     })
+  }
+
+  if (STATUS_PARTIAL.has(status)) {
+    // 部分通过（如一审通过）：仅生成第一级"通过"记录，后续级别尚未审批
+    return [{
+      key: `${item.key}-1`,
+      code: `${item.code || item.key}-R1`,
+      level: 1,
+      reviewer: conf.reviewers[0] || '审批人1',
+      status: '通过' as const,
+      comment: conf.defaultComments[0] || '审批通过。',
+      date: `${baseDate} 09:10:00`,
+    }]
   }
 
   if (STATUS_REJECTED.has(status)) {

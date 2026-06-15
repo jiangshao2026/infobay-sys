@@ -4,7 +4,7 @@ import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import { usePersistedState } from '../../hooks/usePersistedState'
 import { useUser } from '../../context/UserContext'
-import initialData from '../../data/schedulePlans'
+import initialData, { initialPlanApprovalMap } from '../../data/schedulePlans'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import type { SchedulePlanItem, SCPhase, SCPlanStatus, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
 import { DetailModal, descItem, descText, CompactTableCssOnly } from '../../components/DetailModal'
@@ -18,6 +18,8 @@ const planStatusColor = (status: string): string => {
   switch (status) {
     case '待审批':
       return 'gold'
+    case '一审通过':
+      return 'cyan'
     case '已审批':
       return 'green'
     case '已驳回':
@@ -32,7 +34,7 @@ interface PlanPageProps {}
 const PlanPanel: React.FC<PlanPageProps> = () => {
   const { currentUser } = useUser()
   const [list, setList] = usePersistedState<SchedulePlanItem[]>('schedule-plan', initialData)
-  const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('scheduleControl-planPage-approval', {})
+  const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('scheduleControl-planPage-approval', initialPlanApprovalMap)
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -134,8 +136,11 @@ const PlanPanel: React.FC<PlanPageProps> = () => {
         <Space size="small" style={{ display: 'flex', flexWrap: 'wrap' }}>
           <Button type="link" icon={<EyeOutlined />} size="small" onClick={() => handleView(record)}>查看</Button>
           <Button type="link" icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)}>编辑</Button>
-          {record.status !== '已审批' && (
-            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>{record.status === '审批中' ? '审批' : '发起审批'}</Button>
+          {(record.status === '待审批' && (currentUser.role === '监理工程师' || currentUser.role === '总监理工程师')) && (
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>审批</Button>
+          )}
+          {record.status === '一审通过' && currentUser.role === '总监理工程师' && (
+            <Button type="link" icon={<CheckCircleOutlined />} size="small" onClick={() => handleReview(record)}>审批</Button>
           )}
           <Popconfirm
             title="确定删除此进度计划？"
@@ -263,12 +268,10 @@ const PlanPanel: React.FC<PlanPageProps> = () => {
   const handleReviewSubmit = (payload: { status: '通过' | '驳回'; comment: string; reviewer: string }) => {
     if (!currentItem) return
     const key = currentItem.key
-    const existingRecords = approvalMap[key] || []
+      const existingRecords = approvalMap[key] || []
     const nextLevel = existingRecords.length + 1
-    const chain = APPROVAL_CHAINS.PROJECT
-    const isLast = nextLevel >= chain.levels.length
     const newRecord: ApprovalRecord = {
-      key: `${key}-${nextLevel}`,
+      key: `${key}-r${nextLevel}-${Date.now()}`,
       code: `${currentItem.code}-R${nextLevel}`,
       level: nextLevel,
       reviewer: payload.reviewer,
@@ -279,11 +282,12 @@ const PlanPanel: React.FC<PlanPageProps> = () => {
     setApprovalMap(prev => ({ ...prev, [key]: [...existingRecords, newRecord] }))
 
     if (payload.status === '驳回') {
-      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '已驳回' as SCPlanStatus } : item); return r })
-      message.success('已驳回')
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '待审批' as SCPlanStatus } : item); return r })
+      message.success('已驳回，返回待审批')
     } else {
-      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: (isLast ? '已审批' : '审批中') as SCPlanStatus } : item); return r })
-      message.success(isLast ? '审批已通过' : '审批已提交至下一级')
+      const newStatus: SCPlanStatus = currentItem.status === '待审批' ? '一审通过' : '已审批'
+      setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: newStatus } : item); return r })
+      message.success(newStatus === '已审批' ? '终审已通过' : '一审通过，等待总监理工程师终审')
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)
@@ -333,6 +337,7 @@ const PlanPanel: React.FC<PlanPageProps> = () => {
         <Form.Item name="status" label="状态" rules={[{ required: true, message: '请选择状态' }]} style={{ flex: 1 }}>
           <Select placeholder="请选择状态">
             <Option value="待审批">待审批</Option>
+            <Option value="一审通过">一审通过</Option>
             <Option value="已审批">已审批</Option>
             <Option value="已驳回">已驳回</Option>
           </Select>
@@ -364,6 +369,7 @@ const PlanPanel: React.FC<PlanPageProps> = () => {
           <Form.Item name="status">
             <Select placeholder="状态" style={{ width: 130 }} allowClear>
               <Option value="待审批">待审批</Option>
+              <Option value="一审通过">一审通过</Option>
               <Option value="已审批">已审批</Option>
               <Option value="已驳回">已驳回</Option>
             </Select>

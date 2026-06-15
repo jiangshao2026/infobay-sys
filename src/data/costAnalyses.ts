@@ -1,4 +1,4 @@
-import type { CostAnalysisItem, DocumentAttachment } from '../types/projectManagement'
+import type { CostAnalysisItem, DocumentAttachment, ApprovalRecord } from '../types/projectManagement'
 
 const att = (seed: string): DocumentAttachment[] => [
   {
@@ -25,7 +25,7 @@ const initialData: CostAnalysisItem[] = [
     varianceSummary: '开发费节约、设备费超支，综合节约约350万元。',
     analysis: '整体成本可控，开发费用节约主要由于阶段进度滞后；设备超支因高性能服务器采购新增，已纳入变更流程。',
     suggestions: '加强变更管理与采购预算管控；结合进度计划对下半年预算进行滚动调整。',
-    status: '已发布',
+    status: '已审批',
     attachments: att('ca1'),
   },
   {
@@ -40,7 +40,7 @@ const initialData: CostAnalysisItem[] = [
     varianceSummary: '总体节约约730万元，主要来自设备提前到货与采购谈判。',
     analysis: '设备采购与系统集成费用控制良好，远海卫星通信模块为潜在风险点。',
     suggestions: '针对远海通信模块追加专项预算评审；考虑与运营商签订长期协议锁定价格。',
-    status: '已发布',
+    status: '已审批',
     attachments: att('ca2'),
   },
   {
@@ -70,9 +70,22 @@ const initialData: CostAnalysisItem[] = [
     varianceSummary: '整体按计划推进，无重大偏差。',
     analysis: '开发与人力费用正常；历史数据迁移涉及的补充工作潜在成本上升。',
     suggestions: '对迁移补充方案进行预算评审；与用户确认数据范围以控制额外成本。',
-    status: '草稿',
+    status: '待审批',
     attachments: att('ca4'),
   },
 ]
+
+// 初始审批记录：为状态为"已审批"的记录补充审批历史
+// 一审由监理工程师滕海燕审批，二审由总监理工程师韦江腾审批
+export const initialAnalysisApprovalMap: Record<string, ApprovalRecord[]> = {
+  'ca-1': [
+    { key: 'ca-1-r1', code: 'CA-2025-001-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '成本分析内容详实，数据准确，一审通过。', date: '2025-06-16 10:00:00' },
+    { key: 'ca-1-r2', code: 'CA-2025-001-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '终审通过，报告质量合格。', date: '2025-06-16 16:00:00' },
+  ],
+  'ca-2': [
+    { key: 'ca-2-r1', code: 'CA-2025-002-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '分析全面，控制措施合理，一审通过。', date: '2025-06-19 09:00:00' },
+    { key: 'ca-2-r2', code: 'CA-2025-002-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '终审通过。', date: '2025-06-19 15:00:00' },
+  ],
+}
 
 export default initialData

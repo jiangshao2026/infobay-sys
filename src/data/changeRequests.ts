@@ -1,4 +1,4 @@
-import type { ChangeRequestItem, DocumentAttachment } from '../types/projectManagement'
+import type { ChangeRequestItem, DocumentAttachment, ApprovalRecord } from '../types/projectManagement'
 
 const att = (seed: string): DocumentAttachment[] => [
   {
@@ -63,7 +63,7 @@ const initialData: ChangeRequestItem[] = [
     impactScheduleDays: 10,
     impactCost: 320000,
     priority: '中',
-    status: '待一审',
+    status: '待审批',
     attachments: att('cr3'),
     currentLevel: 1,
   },
@@ -81,7 +81,7 @@ const initialData: ChangeRequestItem[] = [
     impactScheduleDays: -5,
     impactCost: 0,
     priority: '高',
-    status: '一审中',
+    status: '待审批',
     attachments: att('cr4'),
     currentLevel: 1,
   },
@@ -117,10 +117,22 @@ const initialData: ChangeRequestItem[] = [
     impactScheduleDays: 25,
     impactCost: 2500000,
     priority: '高',
-    status: '草稿',
+    status: '待审批',
     attachments: att('cr6'),
     currentLevel: 0,
   },
 ]
+
+// 初始审批记录：为状态为"一审通过"或"已审批"的记录补充审批历史
+// 一审由监理工程师滕海燕审批，二审由总监理工程师韦江腾审批
+export const initialRequestApprovalMap: Record<string, ApprovalRecord[]> = {
+  'cr-1': [
+    { key: 'cr-1-r1', code: 'CR-2025-001-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '变更内容合理，影响可控，一审通过。', date: '2025-05-10 10:00:00' },
+    { key: 'cr-1-r2', code: 'CR-2025-001-R2', level: 2, reviewer: '韦江腾', status: '通过', comment: '终审通过，同意变更。', date: '2025-05-11 09:00:00' },
+  ],
+  'cr-2': [
+    { key: 'cr-2-r1', code: 'CR-2025-002-R1', level: 1, reviewer: '滕海燕', status: '通过', comment: '变更方案可行，文档齐全，一审通过。', date: '2025-06-10 14:00:00' },
+  ],
+}
 
 export default initialData

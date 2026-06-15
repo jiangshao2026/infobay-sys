@@ -114,14 +114,13 @@ function OrgMeeting() {
       title: '参会人员',
       dataIndex: 'attendees',
       key: 'attendees',
-      width: 220,
+      width: 320,
       render: (attendees: string[]) =>
         attendees && attendees.length > 0 ? (
-          <Space size={[4, 4]} wrap style={{ maxWidth: 220 }}>
-            {attendees.slice(0, 3).map((a, i) => (
+          <Space size={[4, 4]} wrap style={{ maxWidth: 320 }}>
+            {attendees.map((a, i) => (
               <Tag key={i} color="blue">{a}</Tag>
             ))}
-            {attendees.length > 3 && <Tag>{`+${attendees.length - 3}`}</Tag>}
           </Space>
         ) : (
           <span style={{ color: '#bbb' }}>—</span>
