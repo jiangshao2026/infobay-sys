@@ -2,7 +2,7 @@ import { Card, Table, Button, Space, Input, Select, DatePicker, Modal, Form, mes
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
-import { usePersistedState } from '../../hooks/usePersistedState'
+import { usePersistedState, getPersistedData } from '../../hooks/usePersistedState'
 import { useUser } from '../../context/UserContext'
 import { addAuditLog } from '../../utils/auditLogger'
 import initialData, { initialReportApprovalMap } from '../../data/infoReports'
@@ -252,7 +252,7 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList([...list])
+    setList(getPersistedData<ReportMgmtItem[]>('info-report') ?? list)
   }
 
   const handleCancel = () => {

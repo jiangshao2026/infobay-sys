@@ -2,9 +2,10 @@ import { Card, Table, Button, Space, Input, Select, DatePicker, Modal, Form, mes
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import { useState } from 'react'
 import dayjs from 'dayjs'
-import initialData, { initialKnowledgeApprovalMap } from '../../data/knowledgeDocs'
+import { initialKnowledgeApprovalMap } from '../../data/knowledgeDocs'
 import type { KnowledgeDocItem, KDDocReview, DocumentAttachment } from '../../types/projectManagement'
 import { usePersistedState } from '../../hooks/usePersistedState'
+import { useCrossModuleData } from '../../context/CrossModuleDataContext'
 import { DetailModal, descItem, descText, CompactTableCssOnly, categoryColor, docStatusColor } from '../../components/DetailModal'
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
 import { ReviewModal, ReviewTimeline, getApprovalRecords, APPROVAL_CHAINS, type ApprovalRecord, exportDocument, printDocument } from '../../components/ReviewFlow'
@@ -49,7 +50,7 @@ function computeNextApprovalLevel(status: string): number | null {
 }
 
 const DocPanel: React.FC<DocPanelProps> = ({ defaultCategory }) => {
-  const [list, setList] = usePersistedState<KnowledgeDocItem[]>('knowledge-docs', initialData)
+  const { knowledgeDocList: list, setKnowledgeDocList: setList } = useCrossModuleData()
   const { currentUser } = useUser()
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
@@ -332,7 +333,7 @@ const DocPanel: React.FC<DocPanelProps> = ({ defaultCategory }) => {
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList([...list])
+    setList(getPersistedData<KnowledgeDocItem[]>('knowledge-docs') ?? list)
   }
 
   const handleCancel = () => {

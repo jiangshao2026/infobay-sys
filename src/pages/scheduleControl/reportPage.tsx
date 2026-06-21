@@ -245,7 +245,7 @@ const ReportPanel: React.FC<ReportPageProps> = () => {
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList([...list])
+    setList(getPersistedData<ScheduleReportItem[]>('schedule-report') ?? list)
   }
 
   const handleCancel = () => {

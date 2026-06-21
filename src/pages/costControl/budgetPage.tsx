@@ -273,7 +273,7 @@ const BudgetPanel: React.FC<BudgetPageProps> = () => {
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList([...list])
+    setList(getPersistedData<CostBudgetItem[]>('cost-budget') ?? list)
   }
 
   const handleCancel = () => {

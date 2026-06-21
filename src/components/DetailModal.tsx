@@ -3,9 +3,11 @@
 // 说明：统一使用 Ant Design Descriptions 组件展示详情，
 //       替代各页面中手写的 div+span 重复代码
 // ============================================================
-import { Modal, Descriptions, Tag, Progress, List, Space } from 'antd'
-import { FileTextOutlined } from '@ant-design/icons'
+import { Modal, Descriptions, Tag, Progress, List, Space, Button } from 'antd'
+import { EyeOutlined, DownloadOutlined, WarningOutlined } from '@ant-design/icons'
 import type { DescriptionsProps } from 'antd'
+import { useState } from 'react'
+import { downloadAttachment, PreviewModal, FileIcon, formatFileSize } from './DocumentUploader'
 
 // ---------- 通用详情 Modal ----------
 interface DetailModalProps {
@@ -195,40 +197,96 @@ export const descProgress = (progress: number): React.ReactNode => (
   <Progress percent={progress} size="small" style={{ maxWidth: 320 }} />
 )
 
-const formatFileSize = (bytes?: number): string => {
-  if (!bytes) return ''
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+/** 判断文件内容是否可用 */
+const hasValidContent = (file: { url?: string; fileId?: string }): boolean =>
+  !!(file.fileId || (file.url && file.url.startsWith('data:')))
+
+/** 附件列表内部组件（承载 useState hooks，避免父组件 hooks 数量变化） */
+const DescAttachmentsInner: React.FC<{
+  attachments: { name: string; url?: string; size?: number; uploadedBy?: string; uploadDate?: string; fileId?: string }[]
+}> = ({ attachments }) => {
+  const [previewDoc, setPreviewDoc] = useState<{
+    key: string
+    name: string
+    url: string
+    fileId?: string
+    size?: number
+    uploadedBy?: string
+    uploadDate?: string
+    type?: string
+  } | null>(null)
+
+  if (!attachments || attachments.length === 0) return null
+
+  return (
+    <>
+      <List
+        size="small"
+        bordered
+        dataSource={attachments}
+        renderItem={(file) => (
+          <List.Item
+            actions={
+              hasValidContent(file)
+                ? [
+                    <Button
+                      key="view"
+                      type="link"
+                      size="small"
+                      icon={<EyeOutlined />}
+                      onClick={() => setPreviewDoc({ ...file, key: file.fileId || file.url || '' })}
+                    >
+                      预览
+                    </Button>,
+                    <Button
+                      key="download"
+                      type="link"
+                      size="small"
+                      icon={<DownloadOutlined />}
+                      onClick={() => downloadAttachment(file as any)}
+                    >
+                      下载
+                    </Button>,
+                  ]
+                : undefined
+            }
+          >
+            <List.Item.Meta
+              avatar={
+                hasValidContent(file)
+                  ? <FileIcon doc={file as any} />
+                  : <WarningOutlined style={{ fontSize: 20, color: '#faad14' }} />
+              }
+              title={
+                hasValidContent(file)
+                  ? <span style={{ fontSize: 13 }}>{file.name}</span>
+                  : <span style={{ fontSize: 13, color: '#999' }}>{file.name} <Tag color="warning" style={{ fontSize: 11 }}>文件附件已丢失，请重新上传</Tag></span>
+              }
+              description={
+                <Space size={12} style={{ fontSize: 12, color: '#999' }}>
+                  {file.size ? <span>{formatFileSize(file.size)}</span> : null}
+                  {file.uploadedBy ? <span>上传人：{file.uploadedBy}</span> : null}
+                  {file.uploadDate ? <span>{file.uploadDate}</span> : null}
+                </Space>
+              }
+            />
+          </List.Item>
+        )}
+        style={{ maxWidth: 520 }}
+      />
+      <PreviewModal
+        doc={previewDoc as any}
+        onClose={() => setPreviewDoc(null)}
+      />
+    </>
+  )
 }
 
 export const descAttachments = (
-  attachments?: { name: string; url: string; size?: number; uploadedBy?: string; uploadDate?: string }[]
+  attachments?: { name: string; url?: string; size?: number; uploadedBy?: string; uploadDate?: string; fileId?: string }[]
 ): React.ReactNode => {
   if (!attachments || attachments.length === 0) return '—'
-  return (
-    <List
-      size="small"
-      bordered
-      dataSource={attachments}
-      renderItem={(file, i) => (
-        <List.Item>
-          <List.Item.Meta
-            avatar={<FileTextOutlined style={{ fontSize: 20, color: '#1890ff' }} />}
-            title={<a href={file.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13 }}>{file.name}</a>}
-            description={
-              <Space size={12} style={{ fontSize: 12, color: '#999' }}>
-                {file.size ? <span>{formatFileSize(file.size)}</span> : null}
-                {file.uploadedBy ? <span>上传人：{file.uploadedBy}</span> : null}
-                {file.uploadDate ? <span>{file.uploadDate}</span> : null}
-              </Space>
-            }
-          />
-        </List.Item>
-      )}
-      style={{ maxWidth: 520 }}
-    />
-  )
+  return <DescAttachmentsInner attachments={attachments} />
 }
 
 // ---------- 紧凑表格样式（替代页面内 inline <style>） ----------

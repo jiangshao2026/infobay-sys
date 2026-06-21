@@ -3,6 +3,7 @@ import { DatabaseOutlined, ExclamationCircleOutlined, ReloadOutlined } from '@an
 import { useState } from 'react'
 import { useAppData } from '../../context/AppDataContext'
 import { resetAllPersistedData } from '../../hooks/usePersistedState'
+import { clearAllFiles } from '../../utils/fileStore'
 
 function DataPage() {
   const { resetAll } = useAppData()
@@ -10,7 +11,8 @@ function DataPage() {
 
   const handleReset = () => {
     setLoading(true)
-    setTimeout(() => {
+    setTimeout(async () => {
+      await clearAllFiles()
       resetAll()
       resetAllPersistedData()
       message.success('所有数据已重置为初始状态，页面即将刷新')
@@ -46,9 +48,10 @@ function DataPage() {
           <h3 style={{ marginBottom: 8 }}>数据说明</h3>
           <ul style={{ color: '#666', lineHeight: 1.8, paddingLeft: 20 }}>
             <li>所有模块的操作数据（新增/编辑/删除/审批）存储在浏览器 localStorage 中</li>
+            <li>上传的文件附件存储在浏览器 IndexedDB 中</li>
             <li>刷新页面、切换功能模块后，已修改的数据不会丢失</li>
             <li>切换登录用户后，公共数据（如项目、合同等）依然保留</li>
-            <li>关闭浏览器后重新打开，localStorage 中的数据依然存在</li>
+            <li>关闭浏览器后重新打开，localStorage 和 IndexedDB 中的数据依然存在</li>
             <li>如需完全重置所有数据，点击上方按钮即可</li>
           </ul>
         </div>

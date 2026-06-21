@@ -263,7 +263,7 @@ const CheckPanel: React.FC<CheckPageProps> = () => {
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList([...list])
+    setList(getPersistedData<QualityCheckItem[]>('quality-check') ?? list)
   }
 
   const handleCancel = () => {

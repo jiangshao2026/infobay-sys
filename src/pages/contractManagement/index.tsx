@@ -25,7 +25,7 @@ const { Option } = Select
 
 function ContractManagement() {
   const { currentUser } = useUser()
-  const [contractList, setContractList] = usePersistedState<ContractMgmtItem[]>('contractmgmt-main', contractMgmtData)
+  const { contractMgmtList: contractList, setContractMgmtList: setContractList } = useCrossModuleData()
   const [searchResult, setSearchResult] = useState<ContractMgmtItem[] | null>(null)
   const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('contractmgmt-main-approval', initialContractApprovalMap)
   const [isReviewModalVisible, setIsReviewModalVisible] = useState(false)
@@ -163,7 +163,16 @@ function ContractManagement() {
       status: record.status,
       contractType: record.contractType,
     })
-    setEditFileList((record.attachments || []).map(a => ({ name: a.name, url: a.url })))
+    setEditFileList((record.attachments || []).map(a => ({
+      key: a.fileId || a.key || String(Math.random()),
+      name: a.name,
+      url: a.url || '',
+      fileId: a.fileId,
+      size: a.size || 0,
+      uploadedBy: a.uploadedBy || '历史数据',
+      uploadDate: a.uploadDate || '',
+      type: a.type || '',
+    })))
     setIsEditModalVisible(true)
   }
 
@@ -183,7 +192,7 @@ function ContractManagement() {
         endDate: dayjs(values.endDate).format('YYYY-MM-DD'),
         status: values.status as ContractMgmtStatus,
         contractType: values.contractType,
-        attachments: editFileList.map(f => ({ name: f.name, url: f.url || '#' })) as any,
+        attachments: editFileList.map(f => ({ ...f, url: f.url || '#' })) as any,
       }
       const updated = contractList.map(c => (c.key === currentEditItem.key ? updatedItem : c))
       setContractList(updated)

@@ -8,7 +8,7 @@ import type { FileArchiveItem, ACArchiveCategory, ACArchiveStatus, DocumentAttac
 import { DetailModal, descItem, descText, CompactTableCssOnly } from '../../components/DetailModal'
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
 
-import { usePersistedState } from '../../hooks/usePersistedState'
+import { usePersistedState, getPersistedData } from '../../hooks/usePersistedState'
 import { useUser } from '../../context/UserContext'
 import { addAuditLog } from '../../utils/auditLogger'
 const { Option } = Select
@@ -249,7 +249,7 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList([...list])
+    setList(getPersistedData<FileArchiveItem[]>('accept-file') ?? list)
   }
 
   const handleCancel = () => {

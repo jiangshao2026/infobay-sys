@@ -9,7 +9,7 @@ import { DocumentUploader, DocumentList } from '../../components/DocumentUploade
 import { useUser } from '../../context/UserContext'
 import { addAuditLog } from '../../utils/auditLogger'
 
-import { usePersistedState } from '../../hooks/usePersistedState'
+import { usePersistedState, getPersistedData } from '../../hooks/usePersistedState'
 const { Option } = Select
 const { TextArea } = Input
 
@@ -285,7 +285,7 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList([...list])
+    setList(getPersistedData<SupervisorItem[]>('supervisor-main') ?? list)
   }
 
   const handleCancel = () => {

@@ -3,9 +3,10 @@ import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined
 import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import { usePersistedState } from '../../hooks/usePersistedState'
+import { useCrossModuleData } from '../../context/CrossModuleDataContext'
 import { useUser } from '../../context/UserContext'
 import { addAuditLog } from '../../utils/auditLogger'
-import initialData, { initialIncidentApprovalMap } from '../../data/safetyIncidents'
+import { initialIncidentApprovalMap } from '../../data/safetyIncidents'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import { formatCurrency } from '../../utils/format'
 import type { SafetyIncidentItem, SFIncidentLevel, SFIncidentStatus, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
@@ -51,7 +52,7 @@ const incidentLevelColor = (level: string): string => {
 }
 
 const IncidentPanel: React.FC = () => {
-  const [list, setList] = usePersistedState<SafetyIncidentItem[]>('safety-incident', initialData)
+  const { safetyIncidentList: list, setSafetyIncidentList: setList } = useCrossModuleData()
   const { currentUser } = useUser()
 const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('safetyManagement-incidentPage-approval', initialIncidentApprovalMap)
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
@@ -301,7 +302,7 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList([...list])
+    setList(getPersistedData<SafetyIncidentItem[]>('safety-incident') ?? list)
   }
 
   const handleCancel = () => {

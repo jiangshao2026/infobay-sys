@@ -9,7 +9,7 @@ import { DetailModal, descItem, descText, CompactTableCssOnly } from '../../comp
 import { ReviewModal, ReviewTimeline, getApprovalRecords, APPROVAL_CHAINS } from '../../components/ReviewFlow'
 import { useUser } from '../../context/UserContext'
 import { addAuditLog } from '../../utils/auditLogger'
-import { usePersistedState } from '../../hooks/usePersistedState'
+import { usePersistedState, getPersistedData } from '../../hooks/usePersistedState'
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
 
 const { Option } = Select
@@ -267,7 +267,7 @@ const ReportPanel: React.FC = () => {
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList([...list])
+    setList(getPersistedData<QualityReportItem[]>('quality-report') ?? list)
   }
 
   const handleCancel = () => {

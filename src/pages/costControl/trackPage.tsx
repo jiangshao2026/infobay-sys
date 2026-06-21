@@ -256,7 +256,7 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList([...list])
+    setList(getPersistedData<CostTrackItem[]>('cost-track') ?? list)
   }
 
   const handleCancel = () => {

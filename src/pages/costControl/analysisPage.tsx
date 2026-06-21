@@ -258,7 +258,7 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList([...list])
+    setList(getPersistedData<CostAnalysisItem[]>('cost-analysis') ?? list)
   }
 
   const handleCancel = () => {

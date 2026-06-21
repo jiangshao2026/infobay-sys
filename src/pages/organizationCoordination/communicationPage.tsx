@@ -246,7 +246,7 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList([...list])
+    setList(getPersistedData<OrgCommItem[]>('org-comm') ?? list)
   }
 
   const handleCancel = () => {

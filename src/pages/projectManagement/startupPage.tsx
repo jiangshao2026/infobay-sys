@@ -3,6 +3,7 @@ import { usePersistedState } from '../../hooks/usePersistedState'
 import { useCrossModuleData } from '../../context/CrossModuleDataContext'
 import { useUser } from '../../context/UserContext'
 import { addAuditLog } from '../../utils/auditLogger'
+import { DocumentUploader } from '../../components/DocumentUploader'
 import type { ProjectItem } from '../../types/projectManagement'
 import {
   Card,
@@ -18,7 +19,6 @@ import {
   Popconfirm,
   Tag,
   Descriptions,
-  Upload,
   List,
 } from 'antd'
 import {
@@ -27,12 +27,12 @@ import {
   EditOutlined,
   DeleteOutlined,
   EyeOutlined,
+  DownloadOutlined,
   CheckCircleOutlined,
-  UploadOutlined,
   PaperClipOutlined,
 } from '@ant-design/icons'
-import type { UploadFile } from 'antd/es/upload/interface'
 import dayjs from 'dayjs'
+import { FileIcon, downloadAttachment, PreviewModal } from '../../components/DocumentUploader'
 import {
   ReviewModal,
   ReviewTimeline,
@@ -54,7 +54,7 @@ interface StartupItem {
   planDate: string
   estimatedDays: number
   description: string
-  attachments: { name: string; url: string }[]
+  attachments: { name: string; url?: string; fileId?: string; size?: number; type?: string }[]
   status: '待审批' | '审批中' | '已审批' | '已驳回'
   approvals?: ApprovalRecord[]
   createTime: string
@@ -372,6 +372,7 @@ function StartupPage() {
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
   const [isReviewModalVisible, setIsReviewModalVisible] = useState(false)
   const [currentItem, setCurrentItem] = useState<StartupItem | null>(null)
+  const [previewDoc, setPreviewDoc] = useState<{ name: string; url?: string; fileId?: string } | null>(null)
   const [addForm] = Form.useForm()
   const [editForm] = Form.useForm()
 
@@ -413,11 +414,6 @@ function StartupPage() {
 
   const handleAddOk = () => {
     addForm.validateFields().then(values => {
-      const files: UploadFile[] = values.attachments || []
-      const attachmentList = files.map(f => ({
-        name: f.name,
-        url: f.url || '#',
-      }))
       const seq = String(data.length + 1).padStart(3, '0')
       const year = new Date().getFullYear()
       const newItem: StartupItem = {
@@ -429,7 +425,7 @@ function StartupPage() {
         planDate: values.planDate ? values.planDate.format('YYYY-MM-DD') : '',
         estimatedDays: Number(values.estimatedDays) || 0,
         description: values.description || '',
-        attachments: attachmentList,
+        attachments: values.attachments || [],
         status: '待审批',
         createTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
       }
@@ -443,11 +439,6 @@ function StartupPage() {
   const handleEditOk = () => {
     editForm.validateFields().then(values => {
       if (!currentItem) return
-      const files: UploadFile[] = values.attachments || []
-      const attachmentList = files.map(f => ({
-        name: f.name,
-        url: f.url || '#',
-      }))
       setData(prev =>
         prev.map(item =>
           item.key === currentItem.key
@@ -459,7 +450,7 @@ function StartupPage() {
                 planDate: values.planDate ? values.planDate.format('YYYY-MM-DD') : item.planDate,
                 estimatedDays: Number(values.estimatedDays) || item.estimatedDays,
                 description: values.description || item.description,
-                attachments: attachmentList.length > 0 ? attachmentList : item.attachments,
+                attachments: values.attachments || item.attachments,
               }
             : item
         )
@@ -805,36 +796,8 @@ function StartupPage() {
           <Form.Item name="description" label="开工说明">
             <Input.TextArea rows={3} placeholder="请输入开工说明" />
           </Form.Item>
-          <Form.Item
-            name="attachments"
-            label="实施方案附件"
-            getValueProps={(fileList) => ({ fileList })}
-          >
-            <Upload
-              multiple
-              beforeUpload={() => false}
-              maxCount={10}
-              iconRender={() => <UploadOutlined />}
-              itemRender={(originNode, file) => (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '4px 8px',
-                    background: '#fafafa',
-                    border: '1px solid #eee',
-                    borderRadius: 4,
-                    marginBottom: 4,
-                  }}
-                >
-                  <PaperClipOutlined style={{ color: '#1890ff', marginRight: 6 }} />
-                  <span style={{ flex: 1 }}>{file.name}</span>
-                  {originNode}
-                </div>
-              )}
-            >
-              <Button icon={<UploadOutlined />}>点击上传实施方案</Button>
-            </Upload>
+          <Form.Item name="attachments" label="实施方案附件">
+            <DocumentUploader />
           </Form.Item>
         </Form>
       </Modal>
@@ -893,18 +856,8 @@ function StartupPage() {
           <Form.Item name="description" label="开工说明">
             <Input.TextArea rows={3} placeholder="请输入开工说明" />
           </Form.Item>
-          <Form.Item
-            name="attachments"
-            label="实施方案附件（重新上传将替换原附件）"
-            getValueProps={(fileList) => ({ fileList })}
-          >
-            <Upload
-              multiple
-              beforeUpload={() => false}
-              maxCount={10}
-            >
-              <Button icon={<UploadOutlined />}>点击上传实施方案</Button>
-            </Upload>
+          <Form.Item name="attachments" label="实施方案附件（重新上传将替换原附件）">
+            <DocumentUploader />
           </Form.Item>
         </Form>
       </Modal>
@@ -974,16 +927,39 @@ function StartupPage() {
                   size="small"
                   bordered
                   dataSource={currentItem.attachments}
-                  renderItem={item => (
-                    <List.Item>
-                      <Space>
-                        <PaperClipOutlined style={{ color: '#1890ff' }} />
-                        <a href={item.url} target="_blank" rel="noreferrer">
-                          {item.name}
-                        </a>
-                      </Space>
-                    </List.Item>
-                  )}
+                  renderItem={item => {
+                    const hasContent = item.fileId || (item.url && item.url.startsWith('data:'))
+                    return (
+                      <List.Item
+                        actions={
+                          hasContent
+                            ? [
+                                <Button key="preview" type="link" size="small" icon={<EyeOutlined />}
+                                  onClick={() => {
+                                    setCurrentItem(currentItem)
+                                    setPreviewDoc({ name: item.name, url: item.url || '', fileId: item.fileId })
+                                  }}
+                                >预览</Button>,
+                                <Button key="download" type="link" size="small" icon={<DownloadOutlined />}
+                                  onClick={() => downloadAttachment(item)}
+                                >下载</Button>,
+                              ]
+                            : undefined
+                        }
+                      >
+                        <Space>
+                          {item.fileId
+                            ? <FileIcon doc={item as any} />
+                            : <PaperClipOutlined style={{ color: item.url && item.url !== '#' ? '#1890ff' : '#999' }} />
+                          }
+                          {hasContent
+                            ? <span>{item.name}</span>
+                            : <span style={{ color: '#999' }}>{item.name} <Tag color="warning" style={{ fontSize: 11 }}>文件附件已丢失，请重新上传</Tag></span>
+                          }
+                        </Space>
+                      </List.Item>
+                    )
+                  }}
                 />
               ) : (
                 <div style={{ color: '#999' }}>暂无附件</div>
@@ -1027,6 +1003,10 @@ function StartupPage() {
           const level = (currentItem?.approvals?.length || 0) + 1
           return chain.reviewers[level - 1] || chain.reviewerOptions[0]
         })()}
+      />
+      <PreviewModal
+        doc={previewDoc as any}
+        onClose={() => setPreviewDoc(null)}
       />
     </div>
   )

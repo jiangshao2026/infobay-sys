@@ -295,7 +295,7 @@ function OrgMeeting() {
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList([...list])
+    setList(getPersistedData<OrgMeetingItem[]>('org-meeting-list') ?? list)
   }
 
   const handleCancel = () => {

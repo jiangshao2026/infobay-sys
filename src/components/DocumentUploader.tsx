@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Upload, Button, Modal, List, Space, Tag, message, Popconfirm } from 'antd'
 import {
   UploadOutlined,
@@ -12,30 +12,22 @@ import {
 } from '@ant-design/icons'
 import type { UploadFile, UploadProps } from 'antd/es/upload/interface'
 import type { DocumentAttachment } from '../types/projectManagement'
+import { saveFile, loadFile, deleteFile, estimateIndexedDBUsage, formatFileSize as idbFormatSize } from '../utils/fileStore'
 
 // ============================================================
 // 工具方法
 // ============================================================
 
-/**
- * 文件大小格式化（字节 -> 可读字符串）
- */
-export const formatFileSize = (bytes?: number): string => {
-  if (!bytes && bytes !== 0) return '—'
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(2)} MB`
-  return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`
-}
+export { formatFileSize } from '../utils/fileStore'
 
 /**
- * 生成唯一 key
+ * 生成唯一 key（同时作为 IndexedDB 存储 key）
  */
 const genKey = (): string =>
   `${Date.now()}-${Math.floor(Math.random() * 100000)}`
 
 /**
- * 当前日期时间字符串（用于模拟上传时间）
+ * 当前日期时间字符串
  */
 const nowStr = (): string => {
   const d = new Date()
@@ -43,16 +35,8 @@ const nowStr = (): string => {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
 }
 
-/** 估算 base64 解码后的字节数 */
-const estimateDecodedSize = (dataUrl: string): number => {
-  const comma = dataUrl.indexOf(',')
-  if (comma === -1) return dataUrl.length
-  const base64 = dataUrl.slice(comma + 1)
-  return Math.round(base64.length * 0.75)
-}
-
 // ============================================================
-// 文件类型判断 & 预览渲染
+// 文件类型判断
 // ============================================================
 
 type FileKind = 'image' | 'pdf' | 'text' | 'other'
@@ -66,19 +50,6 @@ const getFileKind = (doc: DocumentAttachment): FileKind => {
   return 'other'
 }
 
-/** 估算附件存储占用 localStorage 的百分比（基于 5MB 配额） */
-const estimateStorageUsage = (docs: DocumentAttachment[]): number => {
-  let total = 0
-  for (const d of docs) {
-    if (d.url && d.url.startsWith('data:')) {
-      total += estimateDecodedSize(d.url)
-    }
-  }
-  return total / (5 * 1024 * 1024) // 按 5MB 配额估算
-}
-
-const localStorageWarnThreshold = 0.7 // 达到 70% 配额时提醒
-
 export const FileIcon: React.FC<{ doc: DocumentAttachment; style?: React.CSSProperties }> = ({ doc, style }) => {
   const kind = getFileKind(doc)
   const iconStyle = { fontSize: 20, ...style }
@@ -90,62 +61,140 @@ export const FileIcon: React.FC<{ doc: DocumentAttachment; style?: React.CSSProp
 }
 
 // ============================================================
-// PreviewContent - 根据文件类型渲染不同的预览内容
+// useFileBlobUrl - 从 IndexedDB 加载文件生成 Blob URL
 // ============================================================
 
-interface PreviewContentProps {
+/**
+ * 根据 DocumentAttachment 获取可预览的 URL：
+ *  - 有 fileId 时：从 IndexedDB 加载 → 创建 Blob URL
+ *  - 无 fileId 时：直接返回 url（兼容演示 SVG 数据）
+ */
+function useFileBlobUrl(doc: DocumentAttachment | null): string | undefined {
+  const [blobUrl, setBlobUrl] = useState<string | undefined>()
+
+  useEffect(() => {
+    if (!doc) {
+      setBlobUrl(undefined)
+      return
+    }
+
+    // 演示数据：仅 data: 协议的 url（SVG 缩略图）视为有效，'#' 等占位符返回 undefined
+    if (!doc.fileId) {
+      setBlobUrl(doc.url?.startsWith('data:') ? doc.url : undefined)
+      return
+    }
+
+    let cancelled = false
+    let currentUrl: string | undefined
+
+    loadFile(doc.fileId).then((buffer) => {
+      if (cancelled) return
+      if (buffer) {
+        const blob = new Blob([buffer], { type: doc.type || 'application/octet-stream' })
+        currentUrl = URL.createObjectURL(blob)
+        setBlobUrl(currentUrl)
+      } else {
+        setBlobUrl(undefined)
+      }
+    })
+
+    return () => {
+      cancelled = true
+      if (currentUrl) {
+        URL.revokeObjectURL(currentUrl)
+      }
+    }
+  }, [doc?.key, doc?.fileId])
+
+  return blobUrl
+}
+
+// ============================================================
+// TextPreviewContent - 文本文件预览（独立组件解决 Hooks 调用顺序问题）
+// ============================================================
+
+const TextPreviewContent: React.FC<{ doc: DocumentAttachment; containerStyle: React.CSSProperties }> = ({ doc, containerStyle }) => {
+  const [text, setText] = useState<string>('')
+
+  useEffect(() => {
+    if (doc.fileId) {
+      loadFile(doc.fileId).then(buf => {
+        if (buf) {
+          const decoder = new TextDecoder('utf-8')
+          setText(decoder.decode(buf))
+        }
+      })
+    } else if (doc.url?.startsWith('data:')) {
+      try { setText(atob(doc.url.split(',')[1])) } catch { setText('') }
+    }
+  }, [doc.fileId, doc.url])
+
+  return (
+    <pre style={{
+      ...containerStyle,
+      background: '#f6f8fa',
+      padding: 16,
+      overflow: 'auto',
+      whiteSpace: 'pre-wrap',
+      wordBreak: 'break-all',
+      fontSize: 13,
+      lineHeight: 1.6,
+      fontFamily: "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace",
+    }}>
+      {text || '正在加载…'}
+    </pre>
+  )
+}
+
+// ============================================================
+// FilePreviewContent - 根据文件类型渲染预览内容
+// ============================================================
+
+interface FilePreviewContentProps {
   doc: DocumentAttachment
   maxHeight?: number
 }
 
-export const PreviewContent: React.FC<PreviewContentProps> = ({ doc, maxHeight = 500 }) => {
+const FilePreviewContent: React.FC<FilePreviewContentProps> = ({ doc, maxHeight = 500 }) => {
+  const blobUrl = useFileBlobUrl(doc)
   const kind = getFileKind(doc)
-  const style: React.CSSProperties = {
+
+  const containerStyle: React.CSSProperties = {
     maxWidth: '100%',
     maxHeight,
     border: '1px solid #f0f0f0',
     borderRadius: 4,
   }
 
-  if (!doc.url || !doc.url.startsWith('data:')) {
-    return <div style={{ color: '#999', padding: 24, textAlign: 'center' }}>文件内容不可用</div>
+  if (!blobUrl) {
+    return (
+      <div style={{ color: '#999', padding: 24, textAlign: 'center' }}>
+        <FileUnknownOutlined style={{ fontSize: 48, color: '#d9d9d9', display: 'block', marginBottom: 12 }} />
+        <p>文件内容不可用</p>
+        {doc.fileId && <p style={{ fontSize: 12 }}>文件可能在清除浏览器数据后丢失</p>}
+      </div>
+    )
   }
 
   switch (kind) {
     case 'image':
       return (
         <div style={{ textAlign: 'center' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={doc.url} alt={doc.name} style={style} />
+          <img src={blobUrl} alt={doc.name} style={containerStyle} />
         </div>
       )
 
     case 'pdf':
       return (
         <iframe
-          src={doc.url}
+          src={blobUrl}
           title={doc.name}
-          style={{ ...style, width: '100%', height: maxHeight, border: 'none' }}
+          style={{ ...containerStyle, width: '100%', height: maxHeight, border: 'none' }}
         />
       )
 
     case 'text': {
-      const text = atob(doc.url.split(',')[1] || '')
-      return (
-        <pre style={{
-          ...style,
-          background: '#f6f8fa',
-          padding: 16,
-          overflow: 'auto',
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-all',
-          fontSize: 13,
-          lineHeight: 1.6,
-          fontFamily: "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace",
-        }}>
-          {text}
-        </pre>
-      )
+      return <TextPreviewContent doc={doc} containerStyle={containerStyle} />
     }
 
     default:
@@ -160,25 +209,42 @@ export const PreviewContent: React.FC<PreviewContentProps> = ({ doc, maxHeight =
 }
 
 // ============================================================
-// 下载工具函数
+// 下载函数（从 IndexedDB 加载后触发下载）
 // ============================================================
 
-export const downloadAttachment = (doc: DocumentAttachment): void => {
-  if (!doc.url || !doc.url.startsWith('data:')) {
+export const downloadAttachment = async (doc: DocumentAttachment): Promise<void> => {
+  let blob: Blob | undefined
+
+  if (doc.fileId) {
+    // 用户上传的文件：从 IndexedDB 加载
+    const buffer = await loadFile(doc.fileId)
+    if (!buffer) {
+      message.warning('文件内容不可用，无法下载')
+      return
+    }
+    blob = new Blob([buffer], { type: doc.type || 'application/octet-stream' })
+  } else if (doc.url?.startsWith('data:')) {
+    // 演示数据：从 data URL 转换
+    const res = await fetch(doc.url)
+    blob = await res.blob()
+  } else {
     message.warning('文件内容不可用，无法下载')
     return
   }
+
+  const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
-  link.href = doc.url
+  link.href = url
   link.download = doc.name
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
+  URL.revokeObjectURL(url)
   message.success(`正在下载：${doc.name}`)
 }
 
 // ============================================================
-// PreviewModal - 预览弹窗（复用）
+// PreviewModal - 预览弹窗
 // ============================================================
 
 interface PreviewModalProps {
@@ -215,11 +281,11 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ doc, onClose }) => {
     >
       <div style={{ padding: '8px 0' }}>
         <Space style={{ marginBottom: 16 }} size={12}>
-          <Tag color="blue">{formatFileSize(doc.size)}</Tag>
+          <Tag color="blue">{idbFormatSize(doc.size || 0)}</Tag>
           <span style={{ color: '#666' }}>上传者：{doc.uploadedBy}</span>
           <span style={{ color: '#666' }}>{doc.uploadDate}</span>
         </Space>
-        <PreviewContent doc={doc} maxHeight={420} />
+        <FilePreviewContent doc={doc} maxHeight={420} />
       </div>
     </Modal>
   )
@@ -252,64 +318,89 @@ export const DocumentUploader: React.FC<DocumentUploaderProps> = ({
 }) => {
   const docs = value || []
   const [previewDoc, setPreviewDoc] = useState<DocumentAttachment | null>(null)
-  const innerInputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
 
   const setDocs = (next: DocumentAttachment[]) => {
     onChange?.(next)
   }
 
-  const handleRemove = (key: string) => {
-    const next = docs.filter(d => d.key !== key)
+  const handleRemove = async (doc: DocumentAttachment) => {
+    // 从 IndexedDB 删除文件内容
+    if (doc.fileId) {
+      try {
+        await deleteFile(doc.fileId)
+      } catch (e) {
+        console.warn('删除 IndexedDB 文件失败:', e)
+      }
+    }
+    const next = docs.filter(d => d.key !== doc.key)
     setDocs(next)
     message.success('已移除附件')
   }
 
   /**
-   * 使用 FileReader 将文件读取为 base64 Data URL 后存储
+   * 使用 FileReader 读取文件为 ArrayBuffer，存入 IndexedDB
    */
   const beforeUpload: UploadProps['beforeUpload'] = (file) => {
-    // 检查文件大小（警告超过 1MB 的文件）
-    if (file.size > 1024 * 1024) {
-      message.warning(`文件 "${file.name}" 超过 1MB，过大文件可能影响演示系统性能`)
+    setUploading(true)
+
+    // 单文件大小限制（20MB）
+    if (file.size > 20 * 1024 * 1024) {
+      message.error(`文件 "${file.name}" 超过 20MB 限制`)
+      setUploading(false)
+      return false
     }
 
     const reader = new FileReader()
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string
+    reader.onload = async (e) => {
+      const buffer = e.target?.result as ArrayBuffer
+      const fileKey = genKey()
 
-      const newDoc: DocumentAttachment = {
-        key: genKey(),
-        name: file.name,
-        url: dataUrl, // 存储完整的 base64 Data URL
-        size: file.size,
-        uploadedBy,
-        uploadDate: nowStr(),
-        type: file.type || '未知类型',
-      }
+      try {
+        // 存入 IndexedDB
+        await saveFile(fileKey, buffer)
 
-      let next: DocumentAttachment[] = [...docs, newDoc]
-      if (maxCount && next.length > maxCount) {
-        next = next.slice(-maxCount)
-        message.warning(`已超出最大附件数量 ${maxCount}，仅保留最新文件`)
-      }
+        const newDoc: DocumentAttachment = {
+          key: fileKey,
+          name: file.name,
+          url: '', // 用户上传的文件不存 url
+          fileId: fileKey, // IndexedDB key
+          size: file.size,
+          uploadedBy,
+          uploadDate: nowStr(),
+          type: file.type || 'application/octet-stream',
+        }
 
-      setDocs(next)
-      message.success(`已添加：${file.name}`)
+        let next: DocumentAttachment[] = [...docs, newDoc]
+        if (maxCount && next.length > maxCount) {
+          next = next.slice(-maxCount)
+          message.warning(`已超出最大附件数量 ${maxCount}，仅保留最新文件`)
+        }
 
-      // 检查 localStorage 使用情况
-      const usage = estimateStorageUsage(next)
-      if (usage > localStorageWarnThreshold) {
-        message.warning(
-          `附件存储已占用约 ${(usage * 100).toFixed(0)}% 的本地存储空间，` +
-          `建议及时移除不需要的附件以免影响系统性能`,
-          5
-        )
+        setDocs(next)
+        message.success(`已添加：${file.name}`)
+
+        // 检查 IndexedDB 使用情况
+        const usage = await estimateIndexedDBUsage()
+        if (usage.fileCount > 20) {
+          message.info(
+            `已存储 ${usage.fileCount} 个文件，共 ${idbFormatSize(usage.usedBytes)}` +
+            `，建议及时移除不需要的附件`,
+            4
+          )
+        }
+      } catch (err) {
+        message.error(`文件 "${file.name}" 存储失败，请重试`)
+        console.error('saveFile error:', err)
+      } finally {
+        setUploading(false)
       }
     }
     reader.onerror = () => {
       message.error(`文件 "${file.name}" 读取失败，请重试`)
+      setUploading(false)
     }
-    reader.readAsDataURL(file)
+    reader.readAsArrayBuffer(file)
 
     return false // 阻止真实上传
   }
@@ -317,7 +408,7 @@ export const DocumentUploader: React.FC<DocumentUploaderProps> = ({
   const uploadProps: UploadProps = {
     multiple,
     accept,
-    disabled,
+    disabled: disabled || uploading,
     beforeUpload,
     showUploadList: false,
   }
@@ -329,10 +420,11 @@ export const DocumentUploader: React.FC<DocumentUploaderProps> = ({
           <p className="ant-upload-drag-icon">
             <UploadOutlined />
           </p>
-          <p className="ant-upload-text">{placeholder}</p>
+          <p className="ant-upload-text">{uploading ? '正在上传…' : placeholder}</p>
           <p className="ant-upload-hint">
-            支持多种常见文档格式；文件将存储在浏览器本地（localStorage），
-            刷新页面后仍然保留，更换设备或清除浏览器数据后会丢失。
+            支持多种常见文档格式；单文件最大 20MB。
+            文件存储在浏览器 IndexedDB 中，刷新页面后仍然保留，
+            更换设备或清除浏览器数据后会丢失。
           </p>
         </Upload.Dragger>
 
@@ -367,7 +459,7 @@ export const DocumentUploader: React.FC<DocumentUploaderProps> = ({
                     <Popconfirm
                       key="del"
                       title="确认移除该附件？"
-                      onConfirm={() => handleRemove(doc.key)}
+                      onConfirm={() => handleRemove(doc)}
                       okText="确认"
                       cancelText="取消"
                     >
@@ -383,7 +475,7 @@ export const DocumentUploader: React.FC<DocumentUploaderProps> = ({
                   title={doc.name}
                   description={
                     <Space size={8}>
-                      <Tag color="blue">{formatFileSize(doc.size)}</Tag>
+                      <Tag color="blue">{idbFormatSize(doc.size || 0)}</Tag>
                       <span style={{ color: '#999' }}>{doc.uploadedBy}</span>
                       <span style={{ color: '#999' }}>{doc.uploadDate}</span>
                     </Space>
@@ -396,8 +488,6 @@ export const DocumentUploader: React.FC<DocumentUploaderProps> = ({
       </Space>
 
       <PreviewModal doc={previewDoc} onClose={() => setPreviewDoc(null)} />
-
-      <input ref={innerInputRef} type="file" style={{ display: 'none' }} />
     </div>
   )
 }
@@ -464,7 +554,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
               title={doc.name}
               description={
                 <Space size={8} wrap>
-                  <Tag color="blue">{formatFileSize(doc.size)}</Tag>
+                  <Tag color="blue">{idbFormatSize(doc.size || 0)}</Tag>
                   <span style={{ color: '#999' }}>{doc.uploadedBy}</span>
                   <span style={{ color: '#999' }}>{doc.uploadDate}</span>
                 </Space>

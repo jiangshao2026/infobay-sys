@@ -230,7 +230,7 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList([...list])
+    setList(getPersistedData<FileArchiveItem[]>('info-archive') ?? list)
   }
 
   const handleCancel = () => {

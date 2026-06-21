@@ -12,6 +12,15 @@ import initialContractData, { initialContractApprovalMap } from '../data/contrac
 const STORAGE_KEY_CONTRACTS = 'xb-demo-contracts'
 const STORAGE_KEY_APPROVALS = 'xb-demo-contract-approvals'
 
+// 按 key 去重，保留最后出现的条目（防止 localStorage 中积累重复数据）
+function deduplicateByKey<T extends { key: string }>(items: T[]): T[] {
+  const map = new Map<string, T>()
+  for (const item of items) {
+    map.set(item.key, item) // 后出现的覆盖先出现的
+  }
+  return Array.from(map.values())
+}
+
 interface AppDataContextValue {
   // 合同列表（含状态）
   contractList: ContractItem[]
@@ -52,10 +61,11 @@ function loadFromStorage<T>(key: string, fallback: T): T {
 }
 
 export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // 合同列表
-  const [contractList, setContractListInternal] = useState<ContractItem[]>(() =>
-    loadFromStorage<ContractItem[]>(STORAGE_KEY_CONTRACTS, initialContractData)
-  )
+  // 合同列表（从 localStorage 加载时去重）
+  const [contractList, setContractListInternal] = useState<ContractItem[]>(() => {
+    const loaded = loadFromStorage<ContractItem[]>(STORAGE_KEY_CONTRACTS, initialContractData)
+    return deduplicateByKey(loaded)
+  })
 
   // 合同审批记录
   const [contractApprovalMap, setContractApprovalMapInternal] = useState<Record<string, ApprovalRecord[]>>(() =>
@@ -79,9 +89,9 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [contractApprovalMap])
 
-  // 封装 setContractList（仅类型化 wrapper，不改变行为）
+  // 封装 setContractList（自动去重）
   const setContractList = useCallback((list: ContractItem[]) => {
-    setContractListInternal(list)
+    setContractListInternal(deduplicateByKey(list))
   }, [])
 
   // 单个合同更新

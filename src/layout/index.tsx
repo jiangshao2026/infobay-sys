@@ -9,6 +9,7 @@ import {
   RestOutlined,
   SafetyCertificateOutlined,
   FileSearchOutlined,
+  FileTextOutlined,
   TeamOutlined,
   CiOutlined,
   BookOutlined,
@@ -20,7 +21,7 @@ import { useUser } from '../context/UserContext'
 import { AppDataProvider } from '../context/AppDataContext'
 import { CrossModuleDataProvider } from '../context/CrossModuleDataContext'
 import { addAuditLog } from '../utils/auditLogger'
-import { Routes, Route, useLocation, useNavigate, Link } from 'react-router-dom'
+import { Routes, Route, useLocation, useNavigate, Link, Navigate } from 'react-router-dom'
 import Dashboard from '../pages/dashboard'
 // 项目管理
 import ProjectManagement from '../pages/projectManagement'
@@ -179,7 +180,7 @@ const menuItems = [
   },
   {
     key: '/contract',
-    icon: <WalletOutlined />,
+    icon: <FileTextOutlined />,
     label: '合同管理',
     children: [
       { key: '/contract/list', label: <Link to="/contract/list">建设合同管理</Link> },
@@ -531,12 +532,14 @@ function Layout() {
             <Route path="/supervisor/list" element={<SupervisorList />} />
             <Route path="/supervisor/certificate" element={<SupervisorCert />} />
             {/* 系统管理 */}
-            <Route path="/system" element={<DataPage />} />
+            <Route path="/system" element={<Navigate to="/system/organization" replace />} />
             <Route path="/system/organization" element={<OrganizationPage />} />
             <Route path="/system/user" element={<UserPage />} />
             <Route path="/system/permission" element={<PermissionPage />} />
             <Route path="/system/data" element={<DataPage />} />
             <Route path="/system/audit-log" element={<AuditLogPage />} />
+            {/* 404 页面 */}
+            <Route path="*" element={<div style={{ textAlign: 'center', padding: '80px 20px' }}><h1 style={{ fontSize: 72, color: '#ccc', marginBottom: 16 }}>404</h1><p style={{ fontSize: 18, color: '#999' }}>抱歉，您访问的页面不存在。</p></div>} />
           </Routes>
         </Content>
       </AntLayout>

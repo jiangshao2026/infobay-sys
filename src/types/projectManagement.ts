@@ -512,7 +512,16 @@ export interface ApprovalRecord {
 export interface DocumentAttachment {
   key: string
   name: string
+  /** 文件访问路径：
+   *  - 用户上传的文件：此字段为空，通过 fileId 从 IndexedDB 加载
+   *  - 演示数据：此字段为 data:image/svg+xml;base64,... 内联内容
+   */
   url: string
+  /**
+   * IndexedDB 存储 key（用户上传的文件会保存到 IndexedDB）
+   * 存在此字段时优先从 IndexedDB 加载文件内容
+   */
+  fileId?: string
   size?: number
   uploadedBy: string
   uploadDate: string

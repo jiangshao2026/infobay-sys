@@ -2,7 +2,8 @@ import { Card, Table, Button, Space, Input, Select, DatePicker, Modal, Form, mes
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
-import { usePersistedState } from '../../hooks/usePersistedState'
+import { usePersistedState, getPersistedData } from '../../hooks/usePersistedState'
+import { useCrossModuleData } from '../../context/CrossModuleDataContext'
 import { useUser } from '../../context/UserContext'
 import { addAuditLog } from '../../utils/auditLogger'
 import initialData, { initialRequestApprovalMap } from '../../data/changeRequests'
@@ -52,7 +53,7 @@ const priorityColor = (priority: string): string => {
 interface RequestPageProps {}
 
 const RequestPanel: React.FC<RequestPageProps> = () => {
-  const [list, setList] = usePersistedState<ChangeRequestItem[]>('change-request', initialData)
+  const { changeRequestList: list, setChangeRequestList: setList } = useCrossModuleData()
   const { currentUser } = useUser()
 const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('changeControl-requestPage-approval', initialRequestApprovalMap)
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
@@ -317,7 +318,7 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList([...list])
+    setList(getPersistedData<ChangeRequestItem[]>('change-request') ?? list)
   }
 
   const handleCancel = () => {

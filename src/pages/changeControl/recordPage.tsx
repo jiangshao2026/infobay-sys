@@ -8,7 +8,7 @@ import type { ChangeRequestItem, DocumentAttachment } from '../../types/projectM
 import { DetailModal, descItem, descText, CompactTableCssOnly } from '../../components/DetailModal'
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
 import { formatCurrency } from '../../utils/format'
-import { usePersistedState } from '../../hooks/usePersistedState'
+import { usePersistedState, getPersistedData } from '../../hooks/usePersistedState'
 import { useUser } from '../../context/UserContext'
 import { addAuditLog } from '../../utils/auditLogger'
 
@@ -332,7 +332,7 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList([...list])
+    setList(getPersistedData<ChangeRecordItem[]>('change-record-list') ?? list)
   }
 
   const handleCancel = () => {

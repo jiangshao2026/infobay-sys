@@ -135,7 +135,7 @@ function SupervisionContract() {
         key: Date.now().toString(),
         status: '待审批',
         progress: 0,
-        attachments: fileList.map(f => ({ name: f.name, url: f.url || '#' })),
+        attachments: fileList.map(f => ({ ...f, url: f.url || '#' })),
       }
       setContractList([newContract, ...globalContractList])
       setIsModalVisible(false)
@@ -165,13 +165,14 @@ function SupervisionContract() {
       endDate: record.endDate ? dayjs(record.endDate) : null,
     })
     setEditFileList((record.attachments || []).map((f, i) => ({
-      key: String(i),
+      key: f.fileId || String(i),
       name: f.name,
-      url: f.url,
-      uploadedBy: '历史数据',
-      uploadDate: '',
-      type: '合同附件',
-      size: 0,
+      url: f.url || '',
+      fileId: f.fileId,
+      uploadedBy: f.uploadedBy || '历史数据',
+      uploadDate: f.uploadDate || '',
+      type: f.type || '合同附件',
+      size: f.size || 0,
     })))
     setIsEditModalVisible(true)
   }
@@ -213,7 +214,7 @@ function SupervisionContract() {
           key: currentEditContract.key,
           status: currentEditContract.status,
           progress: currentEditContract.progress,
-          attachments: editFileList.map((f: any) => ({ name: f.name, url: f.url || '#' })),
+          attachments: editFileList.map((f: any) => ({ ...f, url: f.url || '#' })),
         }
         setContractList(globalContractList.map(item =>
           item.key === currentEditContract.key ? updatedContract : item

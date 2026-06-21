@@ -2,10 +2,11 @@ import { Card, Table, Button, Space, Input, Select, DatePicker, Modal, Form, mes
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
-import { usePersistedState } from '../../hooks/usePersistedState'
+import { usePersistedState, getPersistedData } from '../../hooks/usePersistedState'
+import { useCrossModuleData } from '../../context/CrossModuleDataContext'
 import { useUser } from '../../context/UserContext'
 import { addAuditLog } from '../../utils/auditLogger'
-import initialData, { initialSafetyApprovalMap } from '../../data/safetyChecks'
+import { initialSafetyApprovalMap } from '../../data/safetyChecks'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import type { SafetyCheckItem, SFCheckType, SFLevel, SFCheckStatus, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
 import { DetailModal, descItem, descText, CompactTableCssOnly } from '../../components/DetailModal'
@@ -47,7 +48,7 @@ const riskLevelColor = (level: string): string => {
 }
 
 const CheckPanel: React.FC = () => {
-  const [list, setList] = usePersistedState<SafetyCheckItem[]>('safety-check', initialData)
+  const { safetyCheckList: list, setSafetyCheckList: setList } = useCrossModuleData()
   const { currentUser } = useUser()
 const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('safetyManagement-checkPage-approval', initialSafetyApprovalMap)
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
@@ -287,7 +288,7 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList([...list])
+    setList(getPersistedData<SafetyCheckItem[]>('safety-check') ?? list)
   }
 
   const handleCancel = () => {

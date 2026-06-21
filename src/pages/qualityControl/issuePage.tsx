@@ -2,14 +2,14 @@ import { Card, Table, Button, Space, Input, Select, Modal, Form, message, Popcon
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, PlayCircleOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
-import initialIssueData from '../../data/qualityIssues'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import type { QualityIssueItem, QCIssueLevel, QCIssueStatus, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
 import { DetailModal, descItem, descText, CompactTableCssOnly, issueLevelColor, issueStatusColor } from '../../components/DetailModal'
 import { ReviewModal, ReviewTimeline, getApprovalRecords, APPROVAL_CHAINS } from '../../components/ReviewFlow'
 import { useUser } from '../../context/UserContext'
 import { addAuditLog } from '../../utils/auditLogger'
-import { usePersistedState } from '../../hooks/usePersistedState'
+import { usePersistedState, getPersistedData } from '../../hooks/usePersistedState'
+import { useCrossModuleData } from '../../context/CrossModuleDataContext'
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
 
 const { Option } = Select
@@ -22,7 +22,7 @@ const issueStatusNext = (status: QCIssueStatus): QCIssueStatus => {
 }
 
 const IssuePanel: React.FC = () => {
-  const [list, setList] = usePersistedState<QualityIssueItem[]>('quality-issue', initialIssueData)
+  const { qualityIssueList: list, setQualityIssueList: setList } = useCrossModuleData()
   const { currentUser } = useUser()
 const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('qualityControl-issuePage-approval', {})
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
@@ -272,7 +272,7 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList([...list])
+    setList(getPersistedData<QualityIssueItem[]>('quality-issue') ?? list)
   }
 
   const handleCancel = () => {

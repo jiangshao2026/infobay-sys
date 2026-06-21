@@ -6,7 +6,7 @@ import { usePersistedState } from '../../hooks/usePersistedState'
 import { useCrossModuleData } from '../../context/CrossModuleDataContext'
 import { useUser } from '../../context/UserContext'
 import { addAuditLog } from '../../utils/auditLogger'
-import initialData from '../../data/acceptanceChecks'
+
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import type { AcceptanceCheckItem, ACCheckType, ACCheckStatus, ACResult, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
 import { DetailModal, descItem, descText, CompactTableCssOnly } from '../../components/DetailModal'
@@ -52,7 +52,7 @@ const statusOptions: ACCheckStatus[] = ['待审批', '一审通过', '已审批'
 const resultOptions: ACResult[] = ['合格', '不合格', '有条件合格', '待复查']
 
 const CheckPanel: React.FC = () => {
-  const [list, setList] = usePersistedState<ACCheckItem[]>('accept-check', initialData)
+  const { acceptCheckList: list, setAcceptCheckList: setList } = useCrossModuleData()
   const { projectList: projectData, setProjectList: setProjectData } = useCrossModuleData()
   const { currentUser } = useUser()
   const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('acceptanceFiling-checkPage-approval', {})
@@ -296,7 +296,7 @@ const CheckPanel: React.FC = () => {
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList([...list])
+    setList(getPersistedData<AcceptanceCheckItem[]>('accept-check') ?? list)
   }
 
   const handleCancel = () => {

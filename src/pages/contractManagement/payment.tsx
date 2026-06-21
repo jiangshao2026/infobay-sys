@@ -26,13 +26,14 @@ import {
 } from '../../components/ReviewFlow'
 
 import { usePersistedState } from '../../hooks/usePersistedState'
+import { useCrossModuleData } from '../../context/CrossModuleDataContext'
 import { useUser } from '../../context/UserContext'
 import { addAuditLog } from '../../utils/auditLogger'
 const { Option } = Select
 
 function PaymentManagement() {
   const { currentUser } = useUser()
-  const [paymentList, setPaymentList] = usePersistedState<PaymentMgmtItem[]>('contractmgmt-pay', paymentMgmtData)
+  const { paymentList, setPaymentList } = useCrossModuleData()
   const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('contractManagement-payment-approval', initialPaymentApprovalMap)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
   const [currentItem, setCurrentItem] = useState<PaymentMgmtItem | null>(null)

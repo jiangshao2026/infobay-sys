@@ -2,8 +2,9 @@ import { Card, Table, Button, Space, Input, Select, DatePicker, Modal, Form, mes
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, CheckCircleOutlined, DownloadOutlined, PrinterOutlined } from '@ant-design/icons'
 import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
-import { usePersistedState } from '../../hooks/usePersistedState'
+import { usePersistedState, getPersistedData } from '../../hooks/usePersistedState'
 import { useUser } from '../../context/UserContext'
+import { useCrossModuleData } from '../../context/CrossModuleDataContext'
 import { addAuditLog } from '../../utils/auditLogger'
 import initialData from '../../data/infoDocuments'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
@@ -21,7 +22,7 @@ const UPLOADER_OPTIONS: IMDocUploader[] = ['承建单位', '监理工程师']
 const STATUS_OPTIONS: IMDocStatus[] = ['待审批', '一审通过', '已发布', '已驳回']
 
 const DocumentPanel: React.FC = () => {
-  const [list, setList] = usePersistedState<DocMgmtItem[]>('info-doc', initialData)
+  const { infoDocList: list, setInfoDocList: setList } = useCrossModuleData()
   const { currentUser } = useUser()
 const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('informationManagement-documentPage-approval', {})
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
@@ -268,7 +269,7 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList([...list])
+    setList(getPersistedData<InfoDocumentItem[]>('info-doc') ?? list)
   }
 
   const handleCancel = () => {

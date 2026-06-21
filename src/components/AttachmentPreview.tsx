@@ -14,6 +14,7 @@ interface AttachmentFile {
   uploadedBy?: string
   uploadDate?: string
   type?: string
+  fileId?: string
 }
 
 interface Props {

@@ -241,7 +241,7 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList([...list])
+    setList(getPersistedData<SupervisorCertItem[]>('supervisor-cert') ?? list)
   }
 
   const handleCancel = () => {

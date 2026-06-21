@@ -1,5 +1,5 @@
-import { Card, Table, Button, Input, Select, DatePicker, Modal, Form, Upload, message, Space, Popconfirm } from 'antd'
-import { PlusOutlined, SearchOutlined, EditOutlined, EyeOutlined, DeleteOutlined, CheckCircleOutlined, UploadOutlined } from '@ant-design/icons'
+import { Card, Table, Button, Input, Select, DatePicker, Modal, Form, message, Space, Popconfirm } from 'antd'
+import { PlusOutlined, SearchOutlined, EditOutlined, EyeOutlined, DeleteOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 
@@ -7,6 +7,7 @@ import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import { usePersistedState } from '../../hooks/usePersistedState'
 import { useUser } from '../../context/UserContext'
 import { addAuditLog } from '../../utils/auditLogger'
+import { DocumentUploader } from '../../components/DocumentUploader'
 import planData from '../../data/plans'
 import type { PlanItem, PlanSearchParams, PlanType, PlanStatus } from '../../types/projectManagement'
 import { DetailModal, descItem, descText, descTag, statusColor, descAttachments, CompactTableCssOnly } from '../../components/DetailModal'
@@ -37,8 +38,6 @@ const [isDetailVisible, setIsDetailVisible] = useState(false)
   const [searchForm] = Form.useForm()
   const [addForm] = Form.useForm()
   const [editForm] = Form.useForm()
-  const [addFileList, setAddFileList] = useState<any[]>([])
-  const [editFileList, setEditFileList] = useState<any[]>([])
 
   const handleSearch = (values: PlanSearchParams) => {
     const filtered = list.filter(item => {
@@ -88,13 +87,8 @@ const [isDetailVisible, setIsDetailVisible] = useState(false)
       ...record,
       createDate: record.createDate ? dayjs(record.createDate) : null,
       reviewDate: record.reviewDate ? dayjs(record.reviewDate) : null,
+      attachments: record.attachments || [],
     })
-    setEditFileList((record.attachments || []).map((f, i) => ({
-      uid: String(i),
-      name: f.name,
-      url: f.url,
-      status: 'done',
-    })))
     setIsEditVisible(true)
   }
 
@@ -170,13 +164,14 @@ const [isDetailVisible, setIsDetailVisible] = useState(false)
         createDate: values.createDate ? values.createDate.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
         reviewDate: values.reviewDate ? values.reviewDate.format('YYYY-MM-DD') : undefined,
         status: values.status || '编制中',
-        attachments: addFileList.map(f => ({ name: f.name, url: f.url || '#' })),
+        attachments: values.attachments || [],
       }
       setList(prev => {
         const result = [newPlan, ...prev]
         return result
       })
       setIsAddVisible(false)
+      addForm.resetFields()
       message.success('新增成功')
       addAuditLog(currentUser.name, '信息管理', '新增', newPlan.title || newPlan.code, '监理规划', `新增规划：${newPlan.title}（编号：${newPlan.code}）`)
     })
@@ -193,13 +188,14 @@ const [isDetailVisible, setIsDetailVisible] = useState(false)
                   key: currentPlan.key,
                   createDate: values.createDate ? values.createDate.format('YYYY-MM-DD') : currentPlan.createDate,
                   reviewDate: values.reviewDate ? values.reviewDate.format('YYYY-MM-DD') : undefined,
-                  attachments: editFileList.map(f => ({ name: f.name, url: f.url || '#' })),
+                  attachments: values.attachments || currentPlan.attachments,
                 }
               : item
           )
           return result
         })
         setIsEditVisible(false)
+        editForm.resetFields()
         setCurrentPlan(null)
         message.success('修改成功')
         addAuditLog(currentUser.name, '信息管理', '编辑', currentPlan.title, '监理规划', `编辑文档：${currentPlan.title}（编号：${currentPlan.code}）`)
@@ -214,8 +210,6 @@ const [isDetailVisible, setIsDetailVisible] = useState(false)
     setIsReviewModalVisible(false)
     addForm.resetFields()
     editForm.resetFields()
-    setAddFileList([])
-    setEditFileList([])
     setCurrentPlan(null)
   }
 
@@ -483,19 +477,8 @@ const [isDetailVisible, setIsDetailVisible] = useState(false)
           <Form.Item name="description" label="描述">
             <Input.TextArea rows={3} placeholder="请输入描述" />
           </Form.Item>
-          <Form.Item
-            name="addAttachments"
-            label="文档附件"
-            getValueProps={(fileList) => ({ fileList })}
-          >
-            <Upload
-              multiple
-              beforeUpload={() => false}
-              fileList={addFileList}
-              onChange={info => setAddFileList(info.fileList.map(f => ({ name: f.name, url: f.url || '#', uid: f.uid })))}
-            >
-              <Button icon={<UploadOutlined />}>选择文件</Button>
-            </Upload>
+          <Form.Item name="attachments" label="文档附件">
+            <DocumentUploader />
           </Form.Item>
         </Form>
       </Modal>
@@ -597,19 +580,8 @@ const [isDetailVisible, setIsDetailVisible] = useState(false)
           <Form.Item name="description" label="描述">
             <Input.TextArea rows={3} placeholder="请输入描述" />
           </Form.Item>
-          <Form.Item
-            name="editAttachments"
-            label="文档附件"
-            getValueProps={(fileList) => ({ fileList })}
-          >
-            <Upload
-              multiple
-              beforeUpload={() => false}
-              fileList={editFileList}
-              onChange={info => setEditFileList(info.fileList.map(f => ({ name: f.name, url: f.url || '#', uid: f.uid })))}
-            >
-              <Button icon={<UploadOutlined />}>选择文件</Button>
-            </Upload>
+          <Form.Item name="attachments" label="文档附件">
+            <DocumentUploader />
           </Form.Item>
         </Form>
       </Modal>
