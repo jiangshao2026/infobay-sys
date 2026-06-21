@@ -4,6 +4,7 @@ import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import { usePersistedState } from '../../hooks/usePersistedState'
 import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 import initialData, { initialScheduleReportApprovalMap } from '../../data/scheduleReports'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import type { ScheduleReportItem, SCReportType, SCReportStatus, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
@@ -163,6 +164,7 @@ const ReportPanel: React.FC<ReportPageProps> = () => {
   const handleDelete = (key: string) => {
     setList(prev => { const r = prev.filter(item => item.key !== key); return r })
     message.success('删除成功')
+    addAuditLog(currentUser.name, '进度控制', '删除', key, '进度报告', `删除进度报告：${key}`)
   }
 
   const handleReview = (record: ScheduleReportItem) => {
@@ -197,6 +199,7 @@ const ReportPanel: React.FC<ReportPageProps> = () => {
       setIsAddModalVisible(false)
       addForm.resetFields()
       message.success('新增成功')
+      addAuditLog(currentUser.name, '进度控制', '新增', values.code, '进度报告', `新增进度报告：${values.code}，标题：${values.title}`)
     })
   }
 
@@ -210,6 +213,7 @@ const ReportPanel: React.FC<ReportPageProps> = () => {
         editForm.resetFields()
         setCurrentItem(null)
         message.success('修改成功')
+        addAuditLog(currentUser.name, '进度控制', '编辑', currentItem.code, '进度报告', `编辑进度报告：${currentItem.code}`)
       }
     })
   }
@@ -273,10 +277,12 @@ const ReportPanel: React.FC<ReportPageProps> = () => {
     if (payload.status === '驳回') {
       setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '待审批' as SCReportStatus } : item); return r })
       message.success('已驳回，返回待审批')
+      addAuditLog(currentUser.name, '进度控制', '审批', currentItem.code, '进度报告', '驳回，返回待审批')
     } else {
       const newStatus: SCReportStatus = currentItem.status === '待审批' ? '一审通过' : '已审批'
       setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: newStatus } : item); return r })
       message.success(newStatus === '已审批' ? '终审已通过' : '一审通过，等待总监理工程师终审')
+      addAuditLog(currentUser.name, '进度控制', '审批', currentItem.code, '进度报告', newStatus === '已审批' ? '终审已通过' : '一审通过')
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)

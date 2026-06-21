@@ -4,6 +4,7 @@ import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import { usePersistedState } from '../../hooks/usePersistedState'
 import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 import initialData, { initialPlanApprovalMap } from '../../data/schedulePlans'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import type { SchedulePlanItem, SCPhase, SCPlanStatus, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
@@ -175,6 +176,7 @@ const PlanPanel: React.FC<PlanPageProps> = () => {
   const handleDelete = (key: string) => {
     setList(prev => { const r = prev.filter(item => item.key !== key); return r })
     message.success('删除成功')
+    addAuditLog(currentUser.name, '进度控制', '删除', key, '进度计划', `删除进度计划：${key}`)
   }
 
   const handleReview = (record: SchedulePlanItem) => {
@@ -208,6 +210,7 @@ const PlanPanel: React.FC<PlanPageProps> = () => {
       setIsAddModalVisible(false)
       addForm.resetFields()
       message.success('新增成功')
+      addAuditLog(currentUser.name, '进度控制', '新增', values.code, '进度计划', `新增进度计划：${values.code}，标题：${values.title}`)
     })
   }
 
@@ -221,6 +224,7 @@ const PlanPanel: React.FC<PlanPageProps> = () => {
         editForm.resetFields()
         setCurrentItem(null)
         message.success('修改成功')
+        addAuditLog(currentUser.name, '进度控制', '编辑', currentItem.code, '进度计划', `编辑进度计划：${currentItem.code}`)
       }
     })
   }
@@ -284,10 +288,12 @@ const PlanPanel: React.FC<PlanPageProps> = () => {
     if (payload.status === '驳回') {
       setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '待审批' as SCPlanStatus } : item); return r })
       message.success('已驳回，返回待审批')
+      addAuditLog(currentUser.name, '进度控制', '审批', currentItem.code, '进度计划', '驳回，返回待审批')
     } else {
       const newStatus: SCPlanStatus = currentItem.status === '待审批' ? '一审通过' : '已审批'
       setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: newStatus } : item); return r })
       message.success(newStatus === '已审批' ? '终审已通过' : '一审通过，等待总监理工程师终审')
+      addAuditLog(currentUser.name, '进度控制', '审批', currentItem.code, '进度计划', newStatus === '已审批' ? '终审已通过' : '一审通过')
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)

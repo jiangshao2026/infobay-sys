@@ -4,6 +4,7 @@ import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import { usePersistedState } from '../../hooks/usePersistedState'
 import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 import initialData, { initialReportApprovalMap } from '../../data/infoReports'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import type { InfoReportItem, IMReportType, IMReportStatus, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
@@ -164,8 +165,12 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
   }
 
   const handleDelete = (key: string) => {
+    const deletedItem = list.find(item => item.key === key)
     setList(prev => { const r = prev.filter(item => item.key !== key); return r })
     message.success('删除成功')
+    if (deletedItem) {
+      addAuditLog(currentUser.name, '信息管理', '删除', deletedItem.title, '信息管理报告', `删除报告：${deletedItem.title}（编号：${deletedItem.code}）`)
+    }
   }
 
   const handleReview = (record: InfoReportItem) => {
@@ -198,6 +203,7 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
       setIsAddModalVisible(false)
       addForm.resetFields()
       message.success('新增成功')
+      addAuditLog(currentUser.name, '信息管理', '新增', values.title || values.code, '信息管理报告', `新增报告：${values.title}（编号：${values.code}）`)
     })
   }
 
@@ -211,6 +217,7 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
         editForm.resetFields()
         setCurrentItem(null)
         message.success('修改成功')
+        addAuditLog(currentUser.name, '信息管理', '编辑', currentItem.title, '信息管理报告', `编辑报告：${currentItem.title}（编号：${currentItem.code}）`)
       }
     })
   }
@@ -277,10 +284,12 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
     if (payload.status === '驳回') {
       setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '待审批' as IMReportStatus } : item); return r })
       message.success('已驳回，返回待审批')
+      addAuditLog(currentUser.name, '信息管理', '审批', currentItem.title, '信息管理报告', `驳回报告：${currentItem.title}（编号：${currentItem.code}）`)
     } else {
       const newStatus: IMReportStatus = currentItem.status === '待审批' ? '一审通过' : '已审批'
       setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: newStatus } : item); return r })
       message.success(newStatus === '已审批' ? '终审已通过' : '一审通过，等待总监理工程师终审')
+      addAuditLog(currentUser.name, '信息管理', '审批', currentItem.title, '信息管理报告', `审批报告：${currentItem.title}（编号：${currentItem.code}），状态：${newStatus}`)
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)

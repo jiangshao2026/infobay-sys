@@ -4,6 +4,7 @@ import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import { usePersistedState } from '../../hooks/usePersistedState'
 import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 import initialData from '../../data/infoDocuments'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import type { InfoDocumentItem, IMDocType, IMDocUploader, IMDocStatus, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
@@ -167,8 +168,12 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
   }
 
   const handleDelete = (key: string) => {
+    const deletedItem = list.find(item => item.key === key)
     setList(prev => { const r = prev.filter(item => item.key !== key); return r })
     message.success('删除成功')
+    if (deletedItem) {
+      addAuditLog(currentUser.name, '信息管理', '删除', deletedItem.title, '信息管理文档', `删除文档：${deletedItem.title}（编号：${deletedItem.code}）`)
+    }
   }
 
   const handleReview = (record: InfoDocumentItem) => {
@@ -211,6 +216,7 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
       setIsAddModalVisible(false)
       addForm.resetFields()
       message.success('新增成功')
+      addAuditLog(currentUser.name, '信息管理', '新增', values.title || values.code, '信息管理文档', `新增文档：${values.title}（编号：${values.code}）`)
     })
   }
 
@@ -224,6 +230,7 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
         editForm.resetFields()
         setCurrentItem(null)
         message.success('修改成功')
+        addAuditLog(currentUser.name, '信息管理', '编辑', currentItem.title, '信息管理文档', `编辑文档：${currentItem.title}（编号：${currentItem.code}）`)
       }
     })
   }
@@ -296,6 +303,7 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
     if (payload.status === '驳回') {
       setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '已驳回' as IMDocStatus, currentLevel: nextLevel } : item); return r })
       message.success('已驳回')
+      addAuditLog(currentUser.name, '信息管理', '审批', currentItem.title, '信息管理文档', `驳回文档：${currentItem.title}（编号：${currentItem.code}）`)
     } else {
       // 通过：若达到 2 级终态 -> 已发布；否则 -> 一审通过
       const isFinal = nextLevel >= CHAIN.levels.length
@@ -303,6 +311,7 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
         ? { ...item, status: (isFinal ? '已发布' : '一审通过') as IMDocStatus, currentLevel: nextLevel }
         : item); return r })
       message.success(isFinal ? '审批完成，文档已发布' : '一审通过，等待总监理工程师终审')
+      addAuditLog(currentUser.name, '信息管理', '审批', currentItem.title, '信息管理文档', `审批文档：${currentItem.title}（编号：${currentItem.code}），状态：${isFinal ? '已发布' : '一审通过'}`)
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)

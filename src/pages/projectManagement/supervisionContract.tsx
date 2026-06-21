@@ -15,6 +15,7 @@ import { DetailModal, descItem, descText, descTag, descProgress, descAttachments
 import { CompactTableCssOnly } from '../../components/CompactTable'
 import { ReviewModal, ReviewTimeline, getApprovalRecords, APPROVAL_CHAINS, type ApprovalRecord, exportDocument, printDocument } from '../../components/ReviewFlow'
 import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 import { useAppData } from '../../context/AppDataContext'
 
 const { RangePicker } = DatePicker
@@ -141,6 +142,7 @@ function SupervisionContract() {
       form.resetFields()
       setFileList([])
       message.success('合同新增成功')
+      addAuditLog(currentUser.name, '项目管理', '新增', values.name, '监理合同', `新增监理合同：${values.name}`)
     })
   }
 
@@ -221,6 +223,7 @@ function SupervisionContract() {
         setEditFileList([])
         setCurrentEditContract(null)
         message.success('合同修改成功')
+        addAuditLog(currentUser.name, '项目管理', '编辑', currentEditContract.name, '监理合同', `修改监理合同：${currentEditContract.name}`)
       }
     })
   }
@@ -242,6 +245,7 @@ function SupervisionContract() {
       onOk: () => {
         updateContractStatus(record.key, '已作废')
         message.success('合同已作废')
+        addAuditLog(currentUser.name, '项目管理', '删除', record.name, '监理合同', `作废监理合同：${record.name}`)
       },
     })
   }
@@ -263,6 +267,7 @@ function SupervisionContract() {
           status: newProgress >= 100 ? '已完成' : record.status
         })
         message.success('收款记录已更新')
+        addAuditLog(currentUser.name, '项目管理', '编辑', record.name, '监理合同', `监理合同收款进度更新：${record.name}`)
       },
     })
   }
@@ -360,6 +365,7 @@ function SupervisionContract() {
     setIsSalesInitiateVisible(false)
     setAiReviewResult(null)
     message.success(`已发起审批，合同已提交至总监理工程师（${supervisor}）`)
+    addAuditLog(currentUser.name, '项目管理', '审批', currentContract.name, '监理合同审批', `发起监理合同审批：${currentContract.name}，提交至总监理工程师(${supervisor})`)
   }
 
   // 标准审批提交（级别2/3/4）
@@ -390,14 +396,17 @@ function SupervisionContract() {
         // 最后一级通过
         updateContractStatus(key, '已审批')
         message.success('终审通过，合同审批完成')
+        addAuditLog(currentUser.name, '项目管理', '审批', currentContract.name, '监理合同审批', `终审通过，监理合同审批完成：${currentContract.name}`)
       } else {
         // 进入下一级
         updateContractStatus(key, nextStatus as ContractStatus)
         message.success(`审批通过，已提交至下一审批节点：${chain.levels[currentLevel] || '下一级'}`)
+        addAuditLog(currentUser.name, '项目管理', '审批', currentContract.name, '监理合同审批', `监理合同审批通过，提交至下一节点：${chain.levels[currentLevel - 1] || '下一级'}：${currentContract.name}`)
       }
     } else {
       updateContractStatus(key, '已驳回')
       message.success('审批已驳回')
+      addAuditLog(currentUser.name, '项目管理', '审批', currentContract.name, '监理合同审批', `监理合同审批驳回：${currentContract.name}`)
     }
     setIsReviewModalVisible(false)
   }

@@ -1,10 +1,11 @@
 // ============================================================
-// AttachmentPreview - 附件预览组件
-// 风格与 DocumentList（验收管理模块）保持一致
+// AttachmentPreview - 附件预览组件（只读，合同管理模块使用）
+// 复用 DocumentUploader 中的预览/下载逻辑
 // ============================================================
 import { useState } from 'react'
-import { List, Button, Space, Tag, Modal, message } from 'antd'
+import { List, Button, Space, Tag } from 'antd'
 import { FileTextOutlined, EyeOutlined, DownloadOutlined } from '@ant-design/icons'
+import { formatFileSize, FileIcon, downloadAttachment, PreviewModal } from './DocumentUploader'
 
 interface AttachmentFile {
   name: string
@@ -13,13 +14,6 @@ interface AttachmentFile {
   uploadedBy?: string
   uploadDate?: string
   type?: string
-}
-
-const formatFileSize = (bytes?: number): string => {
-  if (!bytes) return '—'
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
 }
 
 interface Props {
@@ -62,14 +56,14 @@ const AttachmentPreview: React.FC<Props> = ({ attachments, title = '合同附件
                 type="link"
                 size="small"
                 icon={<DownloadOutlined />}
-                onClick={() => message.info('演示环境，暂不提供下载')}
+                onClick={() => downloadAttachment(doc as any)}
               >
                 下载
               </Button>,
             ]}
           >
             <List.Item.Meta
-              avatar={<FileTextOutlined style={{ fontSize: 18, color: '#1677ff' }} />}
+              avatar={<FileIcon doc={doc as any} />}
               title={doc.name}
               description={
                 <Space size={8} wrap>
@@ -83,26 +77,10 @@ const AttachmentPreview: React.FC<Props> = ({ attachments, title = '合同附件
         )}
       />
 
-      <Modal
-        open={!!active}
-        title="附件详情"
-        onCancel={() => setActive(null)}
-        onOk={() => setActive(null)}
-        width={520}
-        okText="关闭"
-        cancelButtonProps={{ style: { display: 'none' } }}
-      >
-        {active && (
-          <div style={{ lineHeight: 2 }}>
-            <p><b>文件名：</b>{active.name}</p>
-            <p><b>上传时间：</b>{active.uploadDate}</p>
-            <p><b>上传者：</b>{active.uploadedBy}</p>
-            <p><b>文件大小：</b>{formatFileSize(active.size)}</p>
-            <p><b>类型：</b>{active.type || '未知类型'}</p>
-            <p style={{ color: '#999' }}>（演示环境下不提供真实文件下载，仅展示元信息。）</p>
-          </div>
-        )}
-      </Modal>
+      <PreviewModal
+        doc={active as any}
+        onClose={() => setActive(null)}
+      />
     </>
   )
 }

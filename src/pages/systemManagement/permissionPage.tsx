@@ -2,6 +2,8 @@ import { Card, Table, Tag, Space, Button, Modal, Form, Input, Select, message, P
 import { SafetyCertificateOutlined, PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, EyeOutlined } from '@ant-design/icons'
 import { useState } from 'react'
 import { usePersistedState } from '../../hooks/usePersistedState'
+import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 import { CompactTableCssOnly } from '../../components/DetailModal'
 
 const { Option } = Select
@@ -27,6 +29,7 @@ const roleColors: Record<string, string> = {
 }
 
 function PermissionPage() {
+  const { currentUser } = useUser()
   const [list, setList] = usePersistedState<PermItem[]>('sys-perm', initPerms)
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [isViewVisible, setIsViewVisible] = useState(false)
@@ -59,10 +62,12 @@ function PermissionPage() {
       if (editing && currentItem) {
         setList(prev => prev.map(i => i.key === currentItem.key ? { ...i, ...values } : i))
         message.success('修改成功')
+        addAuditLog(currentUser.name, '系统管理', '编辑', values.role, '权限', `修改权限配置：角色=${values.role}`)
       } else {
         const newItem: PermItem = { ...values, key: 'p' + Date.now() }
         setList(prev => [newItem, ...prev])
         message.success('新增成功')
+        addAuditLog(currentUser.name, '系统管理', '新增', values.role, '权限', `新增权限配置：角色=${values.role}，模块=${values.modules}`)
       }
       setIsModalVisible(false); form.resetFields()
     }).catch(() => {})
@@ -70,8 +75,12 @@ function PermissionPage() {
 
   const handleDelete = (key: string) => {
     if (list.length <= 1) { message.warning('至少保留一条权限配置'); return }
+    const deletedItem = list.find(i => i.key === key)
     setList(prev => prev.filter(i => i.key !== key))
     message.success('已删除')
+    if (deletedItem) {
+      addAuditLog(currentUser.name, '系统管理', '删除', deletedItem.role, '权限', `删除权限配置：${deletedItem.role}`)
+    }
   }
 
   const columns = [

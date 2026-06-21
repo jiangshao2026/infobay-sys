@@ -13,22 +13,16 @@ import {
   EyeOutlined,
 } from '@ant-design/icons'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
 
-import initialProjectData, { getProjectNameByCode } from '../../data/projects'
-import supervisionContractData from '../../data/contracts'
-import qualityIssuesData from '../../data/qualityIssues'
-import safetyIncidentsData from '../../data/safetyIncidents'
-import safetyChecksData from '../../data/safetyChecks'
-import changeRequestsData from '../../data/changeRequests'
-import acceptanceChecksData from '../../data/acceptanceChecks'
+import { useCrossModuleData } from '../../context/CrossModuleDataContext'
+import { getProjectNameByCode } from '../../data/projects'
 import fileArchivesData from '../../data/fileArchives'
-import infoDocuments from '../../data/infoDocuments'
-import knowledgeDocs from '../../data/knowledgeDocs'
-import { contractMgmtData, paymentMgmtData } from '../../data/contractMgmt'
 import { formatCurrency } from '../../utils/format'
 import { statusColor, CompactTableCssOnly } from '../../components/DetailModal'
 import { useUser } from '../../context/UserContext'
+import { useAppData } from '../../context/AppDataContext'
 
 type TodoItem = {
   key: string
@@ -44,55 +38,64 @@ type TodoItem = {
 
 function Dashboard() {
   const { currentUser } = useUser()
+  const { contractList: supervisionContractList } = useAppData()
+  const navigate = useNavigate()
   const [today] = useState(dayjs().format('YYYY年MM月DD日 dddd'))
 
-  // ==================== 数据统计（基于各模块实际数据计算） ====================
-  const projectCount = initialProjectData.length                         // 项目总数
-  const inProgressProjects = initialProjectData.filter(p => p.status === '已启动')   // 已启动（进行中）
-  const acceptedProjects = initialProjectData.filter(p => p.status === '已验收')      // 已验收
-  const notStartedProjects = initialProjectData.filter(p => p.status === '未启动')    // 未启动
-  const supervisionContractCount = supervisionContractData.length         // 监理合同
-  const buildContractCount = contractMgmtData.length                       // 建设合同
+  // ==================== 数据统计（跨模块共享数据 — 通过 Context 实时同步） ====================
+  const {
+    projectList, contractMgmtList, paymentList,
+    qualityIssueList, safetyCheckList, safetyIncidentList,
+    changeRequestList, acceptCheckList, infoDocList, knowledgeDocList,
+  } = useCrossModuleData()
+
+  const projectCount = projectList.length                         // 项目总数
+  const inProgressProjects = projectList.filter(p => p.status === '已启动')   // 已启动（进行中）
+  const acceptedProjects = projectList.filter(p => p.status === '已验收')      // 已验收
+  const notStartedProjects = projectList.filter(p => p.status === '未启动')    // 未启动
+  const supervisionContractCount = supervisionContractList.length         // 监理合同
+  const buildContractCount = contractMgmtList.length                       // 建设合同
   const totalContractCount = supervisionContractCount + buildContractCount  // 合同总数
-  const qualityIssueCount = qualityIssuesData.length                       // 质量问题
-  const safetyIssueCount = safetyIncidentsData.length + safetyChecksData.length   // 安全隐患
-  const changeCount = changeRequestsData.length                             // 变更申请
-  const acceptanceCount = acceptanceChecksData.length                       // 验收
+  const qualityIssueCount = qualityIssueList.length                       // 质量问题
+  const safetyIssueCount = safetyIncidentList.length + safetyCheckList.length   // 安全隐患
+  const changeCount = changeRequestList.length                             // 变更申请
+  const acceptanceCount = acceptCheckList.length                       // 验收
   const filingCount = fileArchivesData.length                               // 归档
-  const docTotal = infoDocuments.length                                     // 文档
-  const knowledgeCount = knowledgeDocs.length                               // 知识条目
+  const docTotal = infoDocList.length                                     // 文档
+  const knowledgeCount = knowledgeDocList.length                               // 知识条目
 
   // 监理合同待审批（区分已审批/已完成/待审批状态）
-  const pendingApprovalContracts = supervisionContractData.filter((c: any) => c.status === '待审批')
-  const approvedContracts = supervisionContractData.filter((c: any) => c.status === '已审批' || c.status === '已完成')
+  const pendingApprovalContracts = supervisionContractList.filter((c: any) => c.status === '待审批')
+  const approvedContracts = supervisionContractList.filter((c: any) => c.status === '已审批' || c.status === '已完成')
 
   // 建设合同待审批
-  const pendingApprovalBuildContracts = contractMgmtData.filter((c: any) => c.status === '待审批' || c.status === '待一审' || c.status === '一审中')
+  const pendingApprovalBuildContracts = contractMgmtList.filter((c: any) => c.status === '待审批' || c.status === '待一审' || c.status === '一审中')
 
   // 支付管理（待支付）：二审"已审批"但尚未实际付款的支付单
-  const pendingPayments = paymentMgmtData.filter((p: any) => p.status === '已审批')
+  const pendingPayments = paymentList.filter((p: any) => p.status === '已审批')
   const pendingPaymentAmount = pendingPayments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0)
 
   // 待审批变更
-  const pendingChanges = changeRequestsData.filter((c: any) =>
+  const pendingChanges = changeRequestList.filter((c: any) =>
     c.status === '待审批' || c.status === '一审通过' || c.status === '待提交' || c.status === '待一审' || c.status === '一审中'
   )
 
   // 待验收项目 = 已启动项目中有待验收检查记录（这里简化：已启动项目中存在待审批验收检查记录的项目）
   const pendingAcceptanceProjectCodes = new Set(
-    acceptanceChecksData
+    acceptCheckList
       .filter((a: any) => a.status === '待审批' || a.status === '进行中' || a.status === '待安排')
       .map((a: any) => a.projectCode)
   )
-  const pendingAcceptanceProjects = initialProjectData.filter(p => pendingAcceptanceProjectCodes.has(p.code))
+  const pendingAcceptanceProjects = projectList.filter(p => pendingAcceptanceProjectCodes.has(p.code))
 
   // ==================== 弹窗状态 ====================
-  const [listModal, setListModal] = useState<{ open: boolean; title: string; columns: any[]; data: any[]; page: number }>({
+  const [listModal, setListModal] = useState<{ open: boolean; title: string; columns: any[]; data: any[]; page: number; listType?: string }>({
     open: false,
     title: '',
     columns: [],
     data: [],
     page: 1,
+    listType: undefined,
   })
 
   const [projectDetailModal, setProjectDetailModal] = useState<{ open: boolean; project: any }>({
@@ -109,6 +112,42 @@ function Dashboard() {
   const closeProjectDetail = () => setProjectDetailModal({ open: false, project: null })
   const closeTodoDetail = () => setTodoDetailModal({ open: false, item: null })
 
+  const navigateToTodoSource = (item: TodoItem) => {
+    const routes: Record<string, string> = {
+      '质量问题': '/quality/issue',
+      '安全隐患': '/safety/incident',
+      '安全检查': '/safety/check',
+      '变更申请': '/change/request',
+      '验收事项': '/acceptance/check',
+      '监理合同': '/project/supervision-contract',
+      '建设合同': '/contract/list',
+      '支付申请': '/contract/payment',
+    }
+    const route = routes[item.category]
+    if (route) {
+      navigate(route)
+    }
+  }
+
+  const listTypeRoutes: Record<string, string> = {
+    '项目': '/project/list',
+    '监理合同': '/project/supervision-contract',
+    '质量问题': '/quality/issue',
+    '安全隐患': '/safety/incident',
+    '变更申请': '/change/request',
+    '验收': '/acceptance/check',
+    '文档': '/information/document',
+    '知识库': '/knowledge/doc',
+    '待支付': '/contract/payment',
+  }
+
+  const navigateToListSource = (listType?: string) => {
+    if (listType && listTypeRoutes[listType]) {
+      closeListModal()
+      navigate(listTypeRoutes[listType])
+    }
+  }
+
   // ==================== 各类别列表展示 ====================
   const showProjectList = () => {
     const columns = [
@@ -116,19 +155,13 @@ function Dashboard() {
       { title: '项目名称', dataIndex: 'name', key: 'name', width: 320 },
       { title: '类型', dataIndex: 'type', key: 'type', width: 140 },
       { title: '规模', dataIndex: 'scale', key: 'scale', width: 80 },
-      {
-        title: '状态',
-        dataIndex: 'status',
-        key: 'status',
-        width: 100,
-        render: (status: string) => <Tag color={statusColor(status)}>{status}</Tag>,
-      },
+      { title: '状态', dataIndex: 'status', key: 'status', width: 100, render: (status: string) => <Tag color={statusColor(status)}>{status}</Tag> },
       { title: '负责人', dataIndex: 'manager', key: 'manager', width: 100 },
       { title: '投资金额', dataIndex: 'investment', key: 'investment', width: 140, render: (v: number) => formatCurrency(v) },
       { title: '建设周期', dataIndex: 'startDate', key: 'period', width: 220, render: (_: string, row: any) => row.startDate + ' ~ ' + row.endDate },
       { title: '建设单位', dataIndex: 'owner', key: 'owner', width: 200 },
     ]
-    setListModal({ open: true, page: 1, title: '项目列表（共 ' + projectCount + ' 个）', columns, data: initialProjectData })
+    setListModal({ open: true, page: 1, title: '项目列表（共 ' + projectCount + ' 个）', columns, data: projectList, listType: '项目' })
   }
 
   const showContractList = () => {
@@ -139,16 +172,10 @@ function Dashboard() {
       { title: '建设单位', dataIndex: 'partyA', key: 'partyA', width: 200 },
       { title: '承建单位', dataIndex: 'partyB', key: 'partyB', width: 200 },
       { title: '合同金额', dataIndex: 'amount', key: 'amount', width: 140, render: (v: number) => formatCurrency(v) },
-      {
-        title: '状态',
-        dataIndex: 'status',
-        key: 'status',
-        width: 100,
-        render: (status: string) => <Tag color={statusColor(status)}>{status}</Tag>,
-      },
+      { title: '状态', dataIndex: 'status', key: 'status', width: 100, render: (status: string) => <Tag color={statusColor(status)}>{status}</Tag> },
       { title: '签订日期', dataIndex: 'signDate', key: 'signDate', width: 120 },
     ]
-    setListModal({ open: true, page: 1, title: '监理合同列表（共 ' + supervisionContractCount + ' 份）', columns, data: supervisionContractData })
+    setListModal({ open: true, page: 1, title: '监理合同列表（共 ' + supervisionContractCount + ' 份）', columns, data: supervisionContractList, listType: '监理合同' })
   }
 
   const showQualityList = () => {
@@ -169,13 +196,13 @@ function Dashboard() {
       { title: '整改期限', dataIndex: 'deadline', key: 'deadline', width: 120 },
       { title: '发现日期', dataIndex: 'discoverDate', key: 'discoverDate', width: 120 },
     ]
-    setListModal({ open: true, page: 1, title: '质量问题列表（共 ' + qualityIssuesData.length + ' 条）', columns, data: qualityIssuesData })
+    setListModal({ open: true, page: 1, title: '质量问题列表（共 ' + qualityIssueList.length + ' 条）', columns, data: qualityIssueList, listType: '质量问题' })
   }
 
   const showSafetyList = () => {
     const allSafety = [
-      ...safetyIncidentsData.map((s: any) => ({ ...s, category: '安全事故', level: s.level, handler: s.handler, date: s.incidentDate, _rowKey: 'si-' + s.key })),
-      ...safetyChecksData.map((c: any) => ({ ...c, category: '安全检查', level: c.level, handler: c.reviewer, date: c.checkDate, _rowKey: 'sc-' + c.key })),
+      ...safetyIncidentList.map((s: any) => ({ ...s, category: '安全事故', level: s.level, handler: s.handler, date: s.incidentDate, _rowKey: 'si-' + s.key })),
+      ...safetyCheckList.map((c: any) => ({ ...c, category: '安全检查', level: c.level, handler: c.reviewer, date: c.checkDate, _rowKey: 'sc-' + c.key })),
     ]
     const columns = [
       { title: '编号', dataIndex: 'code', key: 'code', width: 120 },
@@ -194,7 +221,7 @@ function Dashboard() {
       { title: '责任人/检查人', dataIndex: 'handler', key: 'handler', width: 120 },
       { title: '日期', dataIndex: 'date', key: 'date', width: 120 },
     ]
-    setListModal({ open: true, page: 1, title: '安全隐患列表（共 ' + allSafety.length + ' 条）', columns, data: allSafety })
+    setListModal({ open: true, page: 1, title: '安全隐患列表（共 ' + allSafety.length + ' 条）', columns, data: allSafety, listType: '安全隐患' })
   }
 
   const showChangeList = () => {
@@ -215,52 +242,7 @@ function Dashboard() {
       { title: '影响成本', dataIndex: 'impactCost', key: 'impactCost', width: 140, render: (v: number) => v ? formatCurrency(v) : '-' },
       { title: '申请日期', dataIndex: 'applyDate', key: 'applyDate', width: 120 },
     ]
-    setListModal({ open: true, page: 1, title: '变更申请列表（共 ' + changeRequestsData.length + ' 条）', columns, data: changeRequestsData })
-  }
-
-  const showAcceptanceList = () => {
-    const allAcceptance = [
-      ...acceptanceChecksData.map((a: any) => ({ ...a, aType: '验收检查', inspector: a.inspector, date: a.checkDate, result: a.result, _rowKey: 'ac-' + a.key })),
-      ...fileArchivesData.map((f: any) => ({ ...f, aType: '档案归档', inspector: f.archivist, date: f.archiveDate, result: f.category, _rowKey: 'fa-' + f.key })),
-    ]
-    const columns = [
-      { title: '编号', dataIndex: 'code', key: 'code', width: 120 },
-      { title: '标题', dataIndex: 'title', key: 'title', width: 320 },
-      { title: '类型', dataIndex: 'aType', key: 'at', width: 100, render: (v: string) => <Tag color={v === '验收检查' ? 'blue' : 'cyan'}>{v}</Tag> },
-      { title: '关联项目', dataIndex: 'projectCode', key: 'pc', width: 200, render: (v: string) => getProjectNameByCode(v) },
-      {
-        title: '状态',
-        dataIndex: 'status',
-        key: 'status',
-        width: 100,
-        render: (status: string) => <Tag color={statusColor(status)}>{status}</Tag>,
-      },
-      { title: '验收人/归档人', dataIndex: 'inspector', key: 'inspector', width: 120 },
-      { title: '结果/类别', dataIndex: 'result', key: 'result', width: 120 },
-      { title: '日期', dataIndex: 'date', key: 'date', width: 120 },
-    ]
-    setListModal({ open: true, page: 1, title: '验收与备案列表（共 ' + allAcceptance.length + ' 条）', columns, data: allAcceptance })
-  }
-
-  const showDocList = () => {
-    const columns = [
-      { title: '编号', dataIndex: 'code', key: 'code', width: 140 },
-      { title: '文档标题', dataIndex: 'title', key: 'title', width: 340 },
-      { title: '文档分类', dataIndex: 'category', key: 'cat', width: 120, render: (v: string) => <Tag color="geekblue">{v}</Tag> },
-      { title: '文档类型', dataIndex: 'type', key: 'type', width: 160 },
-      { title: '关联项目', dataIndex: 'projectCode', key: 'pc', width: 160, render: (v: string) => (v ? getProjectNameByCode(v) : '-') },
-      {
-        title: '状态',
-        dataIndex: 'status',
-        key: 'status',
-        width: 100,
-        render: (status: string) => <Tag color={statusColor(status)}>{status}</Tag>,
-      },
-      { title: '版本', dataIndex: 'version', key: 'version', width: 80 },
-      { title: '作者', dataIndex: 'author', key: 'author', width: 120 },
-      { title: '发布日期', dataIndex: 'uploadDate', key: 'ud', width: 120 },
-    ]
-    setListModal({ open: true, page: 1, title: '文档列表（共 ' + infoDocuments.length + ' 份）', columns, data: infoDocuments })
+    setListModal({ open: true, page: 1, title: '变更申请列表（共 ' + changeRequestList.length + ' 条）', columns, data: changeRequestList, listType: '变更申请' })
   }
 
   const showKnowledgeList = () => {
@@ -280,7 +262,40 @@ function Dashboard() {
       { title: '标签', dataIndex: 'tags', key: 'tags', width: 240, render: (tags: string[]) => tags && tags.slice(0, 3).map((t: string) => <Tag key={t} color="cyan">{t}</Tag>) },
       { title: '更新日期', dataIndex: 'updateDate', key: 'updateDate', width: 120 },
     ]
-    setListModal({ open: true, page: 1, title: '知识库条目列表（共 ' + knowledgeDocs.length + ' 条）', columns, data: knowledgeDocs })
+    setListModal({ open: true, page: 1, title: '知识库条目列表（共 ' + knowledgeDocList.length + ' 条）', columns, data: knowledgeDocList, listType: '知识库' })
+  }
+
+  const showAcceptanceList = () => {
+    const allAcceptance = [
+      ...acceptCheckList.map((a: any) => ({ ...a, aType: '验收检查', inspector: a.inspector, date: a.checkDate, result: a.result, _rowKey: 'ac-' + a.key })),
+      ...fileArchivesData.map((f: any) => ({ ...f, aType: '档案归档', inspector: f.archivist, date: f.archiveDate, result: f.category, _rowKey: 'fa-' + f.key })),
+    ]
+    const columns = [
+      { title: '编号', dataIndex: 'code', key: 'code', width: 120 },
+      { title: '标题', dataIndex: 'title', key: 'title', width: 320 },
+      { title: '类型', dataIndex: 'aType', key: 'at', width: 100, render: (v: string) => <Tag color={v === '验收检查' ? 'blue' : 'cyan'}>{v}</Tag> },
+      { title: '关联项目', dataIndex: 'projectCode', key: 'pc', width: 200, render: (v: string) => getProjectNameByCode(v) },
+      { title: '状态', dataIndex: 'status', key: 'status', width: 100, render: (status: string) => <Tag color={statusColor(status)}>{status}</Tag> },
+      { title: '验收人/归档人', dataIndex: 'inspector', key: 'inspector', width: 120 },
+      { title: '结果/类别', dataIndex: 'result', key: 'result', width: 120 },
+      { title: '日期', dataIndex: 'date', key: 'date', width: 120 },
+    ]
+    setListModal({ open: true, page: 1, title: '验收与备案列表（共 ' + allAcceptance.length + ' 条）', columns, data: allAcceptance, listType: '验收' })
+  }
+
+  const showDocList = () => {
+    const columns = [
+      { title: '编号', dataIndex: 'code', key: 'code', width: 140 },
+      { title: '文档标题', dataIndex: 'title', key: 'title', width: 340 },
+      { title: '文档分类', dataIndex: 'category', key: 'cat', width: 120, render: (v: string) => <Tag color="geekblue">{v}</Tag> },
+      { title: '文档类型', dataIndex: 'type', key: 'type', width: 160 },
+      { title: '关联项目', dataIndex: 'projectCode', key: 'pc', width: 160, render: (v: string) => (v ? getProjectNameByCode(v) : '-') },
+      { title: '状态', dataIndex: 'status', key: 'status', width: 100, render: (status: string) => <Tag color={statusColor(status)}>{status}</Tag> },
+      { title: '版本', dataIndex: 'version', key: 'version', width: 80 },
+      { title: '作者', dataIndex: 'author', key: 'author', width: 120 },
+      { title: '发布日期', dataIndex: 'uploadDate', key: 'ud', width: 120 },
+    ]
+    setListModal({ open: true, page: 1, title: '文档列表（共 ' + infoDocList.length + ' 份）', columns, data: infoDocList, listType: '文档' })
   }
 
   const showInProgressProjectList = () => {
@@ -288,18 +303,12 @@ function Dashboard() {
       { title: '项目编号', dataIndex: 'code', key: 'code', width: 140 },
       { title: '项目名称', dataIndex: 'name', key: 'name', width: 320 },
       { title: '类型', dataIndex: 'type', key: 'type', width: 140 },
-      {
-        title: '状态',
-        dataIndex: 'status',
-        key: 'status',
-        width: 100,
-        render: (status: string) => <Tag color={statusColor(status)}>{status}</Tag>,
-      },
+      { title: '状态', dataIndex: 'status', key: 'status', width: 100, render: (status: string) => <Tag color={statusColor(status)}>{status}</Tag> },
       { title: '负责人', dataIndex: 'manager', key: 'manager', width: 100 },
       { title: '投资金额', dataIndex: 'investment', key: 'investment', width: 140, render: (v: number) => formatCurrency(v) },
       { title: '建设周期', dataIndex: 'startDate', key: 'period', width: 220, render: (_: string, row: any) => row.startDate + ' ~ ' + row.endDate },
     ]
-    setListModal({ open: true, page: 1, title: '进行中项目列表（共 ' + inProgressProjects.length + ' 个）', columns, data: inProgressProjects })
+    setListModal({ open: true, page: 1, title: '进行中项目列表（共 ' + inProgressProjects.length + ' 个）', columns, data: inProgressProjects, listType: '项目' })
   }
 
   const showPendingAcceptanceList = () => {
@@ -307,21 +316,15 @@ function Dashboard() {
       { title: '项目编号', dataIndex: 'code', key: 'code', width: 140 },
       { title: '项目名称', dataIndex: 'name', key: 'name', width: 320 },
       { title: '类型', dataIndex: 'type', key: 'type', width: 140 },
-      {
-        title: '状态',
-        dataIndex: 'status',
-        key: 'status',
-        width: 100,
-        render: (status: string) => <Tag color={statusColor(status)}>{status}</Tag>,
-      },
+      { title: '状态', dataIndex: 'status', key: 'status', width: 100, render: (status: string) => <Tag color={statusColor(status)}>{status}</Tag> },
       { title: '负责人', dataIndex: 'manager', key: 'manager', width: 100 },
       { title: '投资金额', dataIndex: 'investment', key: 'investment', width: 140, render: (v: number) => formatCurrency(v) },
     ]
-    setListModal({ open: true, page: 1, title: '待验收项目列表（共 ' + pendingAcceptanceProjects.length + ' 个）', columns, data: pendingAcceptanceProjects })
+    setListModal({ open: true, page: 1, title: '待验收项目列表（共 ' + pendingAcceptanceProjects.length + ' 个）', columns, data: pendingAcceptanceProjects, listType: '项目' })
   }
 
   const showPendingPaymentList = () => {
-    const filtered = paymentMgmtData.filter((p: any) => p.status === '已审批')
+    const filtered = paymentList.filter((p: any) => p.status === '已审批')
     const columns = [
       { title: '支付编号', dataIndex: 'code', key: 'code', width: 140 },
       { title: '合同编号', dataIndex: 'contractCode', key: 'contractCode', width: 160 },
@@ -345,11 +348,11 @@ function Dashboard() {
       { title: '计划支付日期', dataIndex: 'payDate', key: 'payDate', width: 140 },
       { title: '备注', dataIndex: 'remark', key: 'remark', width: 220 },
     ]
-    setListModal({ open: true, page: 1, title: '待支付金额列表（共 ' + filtered.length + ' 条）', columns, data: filtered })
+    setListModal({ open: true, page: 1, title: '待支付金额列表（共 ' + filtered.length + ' 条）', columns, data: filtered, listType: '待支付' })
   }
 
   const showPendingChangeList = () => {
-    const pendingChanges = changeRequestsData.filter((c: any) =>
+    const pendingChanges = changeRequestList.filter((c: any) =>
       c.status === '待审批' || c.status === '待一审' || c.status === '一审中' || c.status === '一审通过' || c.status === '待提交'
     )
     const columns = [
@@ -368,7 +371,7 @@ function Dashboard() {
       { title: '申请人', dataIndex: 'applicant', key: 'applicant', width: 100 },
       { title: '申请日期', dataIndex: 'applyDate', key: 'applyDate', width: 120 },
     ]
-    setListModal({ open: true, page: 1, title: '待审批变更列表（共 ' + pendingChanges.length + ' 条）', columns, data: pendingChanges })
+    setListModal({ open: true, page: 1, title: '待审批变更列表（共 ' + pendingChanges.length + ' 条）', columns, data: pendingChanges, listType: '变更申请' })
   }
 
   // ==================== 近期项目进度（基于实际建设周期计算） ====================
@@ -402,7 +405,7 @@ function Dashboard() {
   // ==================== 待处理事项（来自各模块的真实待处理数据） ====================
   const todoItems: TodoItem[] = [
     // 质量问题：待整改 / 整改中
-    ...qualityIssuesData
+    ...qualityIssueList
       .filter((q: any) => q.status === '待整改' || q.status === '整改中')
       .map((q: any) => ({
         key: 'q-' + q.key,
@@ -416,7 +419,7 @@ function Dashboard() {
         source: q,
       })),
     // 安全隐患：待处理 / 处理中
-    ...safetyIncidentsData
+    ...safetyIncidentList
       .filter((s: any) => s.status === '待处理' || s.status === '处理中')
       .map((s: any) => ({
         key: 'si-' + s.key,
@@ -430,7 +433,7 @@ function Dashboard() {
         source: s,
       })),
     // 安全检查：待审批
-    ...safetyChecksData
+    ...safetyCheckList
       .filter((sc: any) => sc.status === '待审批' || sc.status === '一审中')
       .map((sc: any) => ({
         key: 'sc-' + sc.key,
@@ -444,7 +447,7 @@ function Dashboard() {
         source: sc,
       })),
     // 变更申请：待审批 / 待一审 / 一审中 / 一审通过
-    ...changeRequestsData
+    ...changeRequestList
       .filter((c: any) => c.status === '待审批' || c.status === '待一审' || c.status === '一审中' || c.status === '一审通过' || c.status === '待提交')
       .map((c: any) => ({
         key: 'c-' + c.key,
@@ -458,7 +461,7 @@ function Dashboard() {
         source: c,
       })),
     // 验收检查：待审批 / 进行中 / 待安排
-    ...acceptanceChecksData
+    ...acceptCheckList
       .filter((a: any) => a.status === '待审批' || a.status === '进行中' || a.status === '待安排' || a.status === '待验收')
       .map((a: any) => ({
         key: 'a-' + a.key,
@@ -472,7 +475,7 @@ function Dashboard() {
         source: a,
       })),
     // 监理合同：待审批
-    ...supervisionContractData
+    ...supervisionContractList
       .filter((c: any) => c.status === '待审批' || c.status === '待总监理工程师审批' || c.status === '待部门经理审批' || c.status === '待分管副总经理审批')
       .map((c: any) => ({
         key: 'j-' + c.key,
@@ -485,8 +488,8 @@ function Dashboard() {
         desc: c.partyA + ' - 金额：' + formatCurrency(c.amount),
         source: c,
       })),
-    // 建设合同（contractMgmtData）：待审批 / 一审中 / 一审通过
-    ...contractMgmtData
+    // 建设合同（contractMgmtList）：待审批 / 一审中 / 一审通过
+    ...contractMgmtList
       .filter((c: any) => c.status === '待审批' || c.status === '待一审' || c.status === '一审中')
       .map((c: any) => ({
         key: 'b-' + c.key,
@@ -500,7 +503,7 @@ function Dashboard() {
         source: c,
       })),
     // 支付管理：二审已审批但尚未实际付款
-    ...paymentMgmtData
+    ...paymentList
       .filter((p: any) => p.status === '已审批')
       .map((p: any) => ({
         key: 'p-' + p.key,
@@ -768,7 +771,14 @@ function Dashboard() {
             onChange={(page: number) => setListModal(prev => ({ ...prev, page }))}
             showSizeChanger={false}
           />
-          <Button type="primary" onClick={closeListModal}>关闭</Button>
+          <Space>
+            {listModal.listType && (
+              <Button type="link" icon={<EyeOutlined />} onClick={() => navigateToListSource(listModal.listType)}>
+                前往模块处理
+              </Button>
+            )}
+            <Button type="primary" onClick={closeListModal}>关闭</Button>
+          </Space>
         </div>
       </Modal>
 
@@ -780,6 +790,14 @@ function Dashboard() {
         onCancel={closeProjectDetail}
         width={900}
         footer={[
+          <Button key="overview" type="link" icon={<EyeOutlined />} onClick={() => {
+            if (projectDetailModal.project) {
+              closeProjectDetail()
+              navigate('/project/overview/' + projectDetailModal.project.code)
+            }
+          }}>
+            查看项目总览
+          </Button>,
           <Button key="close" type="primary" onClick={closeProjectDetail}>
             关闭
           </Button>,
@@ -832,8 +850,14 @@ function Dashboard() {
         onCancel={closeTodoDetail}
         width={900}
         footer={[
-          <Button key="close" type="primary" onClick={closeTodoDetail}>
+          <Button key="close" onClick={closeTodoDetail}>
             关闭
+          </Button>,
+          <Button key="goto" type="primary" icon={<EyeOutlined />} onClick={() => {
+            if (todoDetailModal.item) navigateToTodoSource(todoDetailModal.item)
+            closeTodoDetail()
+          }}>
+            前往处理
           </Button>,
         ]}
       >

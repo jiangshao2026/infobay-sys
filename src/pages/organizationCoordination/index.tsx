@@ -7,7 +7,7 @@ import CommunicationPanel from './communicationPage'
 const items: TabsProps['items'] = [
   {
     key: 'team',
-    label: '团队管理',
+    label: '项目关系人',
     children: <TeamPanel />,
   },
   {

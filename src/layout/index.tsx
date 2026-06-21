@@ -18,6 +18,8 @@ import {
 } from '@ant-design/icons'
 import { useUser } from '../context/UserContext'
 import { AppDataProvider } from '../context/AppDataContext'
+import { CrossModuleDataProvider } from '../context/CrossModuleDataContext'
+import { addAuditLog } from '../utils/auditLogger'
 import { Routes, Route, useLocation, useNavigate, Link } from 'react-router-dom'
 import Dashboard from '../pages/dashboard'
 // 项目管理
@@ -75,6 +77,7 @@ import OrganizationPage from '../pages/systemManagement/organizationPage'
 import UserPage from '../pages/systemManagement/userPage'
 import PermissionPage from '../pages/systemManagement/permissionPage'
 import DataPage from '../pages/systemManagement/dataPage'
+import AuditLogPage from '../pages/systemManagement/auditLogPage'
 
 const { Header, Sider, Content } = AntLayout
 
@@ -210,6 +213,7 @@ const menuItems = [
       { key: '/system/user', label: <Link to="/system/user">用户管理</Link> },
       { key: '/system/permission', label: <Link to="/system/permission">权限管理</Link> },
       { key: '/system/data', label: <Link to="/system/data">数据管理</Link> },
+      { key: '/system/audit-log', label: <Link to="/system/audit-log">日志审计</Link> },
     ],
   },
 ]
@@ -280,6 +284,7 @@ function Layout() {
 
   return (
     <AppDataProvider>
+      <CrossModuleDataProvider>
       <AntLayout style={{ minHeight: '100vh' }}>
       <Sider
         trigger={null}
@@ -411,6 +416,7 @@ function Layout() {
               const result = login(values.username, values.password)
               if (result.ok) {
                 message.success('登录成功')
+                addAuditLog(values.username, '系统管理', '登录', '系统', '登录', '用户登录系统')
                 setLoginModalVisible(false)
                 loginForm.resetFields()
                 navigate('/dashboard')
@@ -433,6 +439,7 @@ function Layout() {
                 const result = login(values.username, values.password)
                 if (result.ok) {
                   message.success('登录成功')
+                  addAuditLog(values.username, '系统管理', '登录', '系统', '登录', '用户登录系统')
                   setLoginModalVisible(false)
                   loginForm.resetFields()
                   navigate('/dashboard')
@@ -529,10 +536,12 @@ function Layout() {
             <Route path="/system/user" element={<UserPage />} />
             <Route path="/system/permission" element={<PermissionPage />} />
             <Route path="/system/data" element={<DataPage />} />
+            <Route path="/system/audit-log" element={<AuditLogPage />} />
           </Routes>
         </Content>
       </AntLayout>
     </AntLayout>
+    </CrossModuleDataProvider>
     </AppDataProvider>
   )
 }

@@ -6,6 +6,8 @@ import initialData from '../../data/supervisors'
 import type { SupervisorItem, SPGender, SPEducation, SPTitle, SPPosition, SPStatus, SPCertType, SPCertRef, DocumentAttachment } from '../../types/projectManagement'
 import { DetailModal, descItem, descText, CompactTableCssOnly } from '../../components/DetailModal'
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
+import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 
 import { usePersistedState } from '../../hooks/usePersistedState'
 const { Option } = Select
@@ -35,6 +37,7 @@ const certTypeOptions: SPCertType[] = ['信息系统监理师', '信息系统项
 
 const SupervisorPanel: React.FC = () => {
   const [list, setList] = usePersistedState<SupervisorItem[]>('supervisor-main', initialData)
+const { currentUser } = useUser()
 const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -244,6 +247,7 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
         setEditCertList([])
         setCurrentItem(null)
         message.success('修改成功')
+        addAuditLog(currentUser.name, '监理师管理', '编辑', currentItem.name || currentItem.code, '监理师', `编辑监理师：${currentItem.name}（编号：${currentItem.code}）`)
       }
     })
   }
@@ -448,9 +452,11 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
       if (certEditingKey) {
         setCertList(certList.map(c => c.key === certEditingKey ? newCert : c))
         message.success('证书已更新')
+        addAuditLog(currentUser.name, '监理师管理', '编辑', newCert.certificateNo || newCert.type, '资质证书', `编辑资质证书：${newCert.type}（编号：${newCert.certificateNo}）`)
       } else {
         setCertList([...certList, newCert])
         message.success('证书已添加')
+        addAuditLog(currentUser.name, '监理师管理', '新增', newCert.certificateNo || newCert.type, '资质证书', `新增资质证书：${newCert.type}（编号：${newCert.certificateNo}）`)
       }
       setIsCertModalVisible(false)
       setCertEditingKey(null)

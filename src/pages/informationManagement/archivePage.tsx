@@ -9,11 +9,14 @@ import { DetailModal, descItem, descText, CompactTableCssOnly, categoryColor, st
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
 
 import { usePersistedState } from '../../hooks/usePersistedState'
+import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 const { Option } = Select
 const { TextArea } = Input
 
 const ArchivePanel: React.FC = () => {
   const [list, setList] = usePersistedState<FileArchiveItem[]>('info-archive', initialData)
+  const { currentUser } = useUser()
 const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -144,8 +147,12 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   }
 
   const handleDelete = (key: string) => {
+    const deletedItem = list.find(item => item.key === key)
     setList(prev => { const r = prev.filter(item => item.key !== key); return r })
     message.success('删除成功')
+    if (deletedItem) {
+      addAuditLog(currentUser.name, '信息管理', '删除', deletedItem.title, '信息管理归档', `删除归档：${deletedItem.title}（编号：${deletedItem.code}）`)
+    }
   }
 
   const showAddModal = () => {
@@ -174,6 +181,7 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
       setIsAddModalVisible(false)
       addForm.resetFields()
       message.success('新增成功')
+      addAuditLog(currentUser.name, '信息管理', '新增', values.title || values.code, '信息管理归档', `新增归档：${values.title}（编号：${values.code}）`)
     })
   }
 
@@ -187,6 +195,7 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
         editForm.resetFields()
         setCurrentItem(null)
         message.success('修改成功')
+        addAuditLog(currentUser.name, '信息管理', '编辑', currentItem.title, '信息管理归档', `编辑归档：${currentItem.title}（编号：${currentItem.code}）`)
       }
     })
   }

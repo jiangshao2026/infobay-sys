@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { usePersistedState } from '../../hooks/usePersistedState'
+import { useCrossModuleData } from '../../context/CrossModuleDataContext'
 import { useUser } from '../../context/UserContext'
-import initialProjectData from '../../data/projects'
+import { addAuditLog } from '../../utils/auditLogger'
 import type { ProjectItem } from '../../types/projectManagement'
 import {
   Card,
@@ -361,7 +362,7 @@ const STATUS_COLORS: Record<StartupItem['status'], string> = {
 function StartupPage() {
   const { currentUser } = useUser()
   const [data, setData] = usePersistedState<StartupItem[]>('project-startup', initialData)
-  const [projectData, setProjectData] = usePersistedState<ProjectItem[]>('project-list', initialProjectData)
+  const { projectList: projectData, setProjectList: setProjectData } = useCrossModuleData()
   const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('projectManagement-startupPage-approval', {})
   const [keyword, setKeyword] = useState('')
   const [statusFilter, setStatusFilter] = useState<string | undefined>()
@@ -471,8 +472,12 @@ function StartupPage() {
   }
 
   const handleDelete = (key: string) => {
+    const item = data.find(item => item.key === key)
     setData(prev => prev.filter(item => item.key !== key))
     message.success('已删除')
+    if (item) {
+      addAuditLog(currentUser.name, '项目管理', '删除', item.projectName, '项目启动申请', `删除项目启动申请：${item.code} - ${item.projectName}`)
+    }
   }
 
   const handleStartReview = (record: StartupItem) => {
@@ -538,8 +543,14 @@ function StartupPage() {
         )
       )
       message.success(`审批已提交，当前状态：${nextStatus}，项目状态已同步为"已启动"`)
+      addAuditLog(currentUser.name, '项目管理', '审批', currentItem.projectName, '项目启动审批', `审批通过项目启动申请：${currentItem.code}`)
     } else {
       message.success(`审批已提交，当前状态：${nextStatus}`)
+      if (payload.status === '驳回') {
+        addAuditLog(currentUser.name, '项目管理', '审批', currentItem.projectName, '项目启动审批', `驳回项目启动申请：${currentItem.code}`)
+      } else {
+        addAuditLog(currentUser.name, '项目管理', '审批', currentItem.projectName, '项目启动审批', `审批通过项目启动申请：${currentItem.code}`)
+      }
     }
   }
 

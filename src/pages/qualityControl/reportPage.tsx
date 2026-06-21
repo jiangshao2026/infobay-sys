@@ -8,6 +8,7 @@ import type { QualityReportItem, QCReportStatus, QCReportType, DocumentAttachmen
 import { DetailModal, descItem, descText, CompactTableCssOnly } from '../../components/DetailModal'
 import { ReviewModal, ReviewTimeline, getApprovalRecords, APPROVAL_CHAINS } from '../../components/ReviewFlow'
 import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 import { usePersistedState } from '../../hooks/usePersistedState'
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
 
@@ -179,8 +180,12 @@ const ReportPanel: React.FC = () => {
   }
 
   const handleDelete = (key: string) => {
+    const deletedItem = list.find(item => item.key === key)
     setList(prev => { const r = prev.filter(item => item.key !== key); return r })
     message.success('删除成功')
+    if (deletedItem) {
+      addAuditLog(currentUser.name, '质量控制', '删除', deletedItem.title, '质量报告', `删除质量报告：${deletedItem.code}`)
+    }
   }
 
   const handleReview = (record: QualityReportItem) => {
@@ -213,6 +218,7 @@ const ReportPanel: React.FC = () => {
       setIsAddModalVisible(false)
       addForm.resetFields()
       message.success('新增成功')
+      addAuditLog(currentUser.name, '质量控制', '新增', values.title, '质量报告', `新增质量报告：${values.code}`)
     })
   }
 
@@ -226,6 +232,7 @@ const ReportPanel: React.FC = () => {
         editForm.resetFields()
         setCurrentItem(null)
         message.success('修改成功')
+        addAuditLog(currentUser.name, '质量控制', '编辑', currentItem.title, '质量报告', `编辑质量报告：${currentItem.code}`)
       }
     })
   }
@@ -292,10 +299,12 @@ const ReportPanel: React.FC = () => {
     if (payload.status === '驳回') {
       setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '待审批' as QCReportStatus } : item); return r })
       message.success('已驳回，返回待审批')
+      addAuditLog(currentUser.name, '质量控制', '审批', currentItem.title, '质量报告', `驳回质量报告：${currentItem.code}`)
     } else {
       const newStatus: QCReportStatus = currentItem.status === '待审批' ? '一审通过' : '已审批'
       setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: newStatus } : item); return r })
       message.success(newStatus === '已审批' ? '终审已通过' : '一审通过，等待总监理工程师终审')
+      addAuditLog(currentUser.name, '质量控制', '审批', currentItem.title, '质量报告', `${newStatus === '已审批' ? '终审通过' : '一审通过'}质量报告：${currentItem.code}`)
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)

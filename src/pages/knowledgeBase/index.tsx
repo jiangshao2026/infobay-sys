@@ -1,6 +1,7 @@
 import { Card, Tabs } from 'antd'
 import type { TabsProps } from 'antd'
 import DocPanel from './docPage'
+import KnowledgeQAPanel from './qaPage'
 
 const items: TabsProps['items'] = [
   {
@@ -22,6 +23,11 @@ const items: TabsProps['items'] = [
     key: 'management',
     label: '管理制度',
     children: <DocPanel defaultCategory="管理制度" />,
+  },
+  {
+    key: 'qa',
+    label: '智能问答',
+    children: <KnowledgeQAPanel />,
   },
 ]
 

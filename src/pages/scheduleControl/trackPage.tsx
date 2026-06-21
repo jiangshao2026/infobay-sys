@@ -9,6 +9,8 @@ import { DetailModal, descItem, descText, CompactTableCssOnly } from '../../comp
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
 
 import { usePersistedState } from '../../hooks/usePersistedState'
+import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 const { Option } = Select
 const { TextArea } = Input
 
@@ -42,6 +44,7 @@ const formatDeviation = (days: number): string => {
 interface TrackPageProps {}
 
 const TrackPanel: React.FC<TrackPageProps> = () => {
+  const { currentUser } = useUser()
   const [list, setList] = usePersistedState<ScheduleTrackItem[]>('schedule-track', initialData)
 const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
@@ -211,6 +214,7 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const handleDelete = (key: string) => {
     setList(prev => { const r = prev.filter(item => item.key !== key); return r })
     message.success('删除成功')
+    addAuditLog(currentUser.name, '进度控制', '删除', key, '进度跟踪', `删除进度跟踪：${key}`)
   }
 
   const showAddModal = () => {
@@ -243,6 +247,7 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
       setIsAddModalVisible(false)
       addForm.resetFields()
       message.success('新增成功')
+      addAuditLog(currentUser.name, '进度控制', '新增', values.code, '进度跟踪', `新增进度跟踪：${values.code}，标题：${values.title}`)
     })
   }
 
@@ -256,6 +261,7 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
         editForm.resetFields()
         setCurrentItem(null)
         message.success('修改成功')
+        addAuditLog(currentUser.name, '进度控制', '编辑', currentItem.code, '进度跟踪', `编辑进度跟踪：${currentItem.code}`)
       }
     })
   }

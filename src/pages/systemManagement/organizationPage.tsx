@@ -2,6 +2,8 @@ import { Card, Table, Space, Button, Modal, Form, Input, message, Popconfirm, Ta
 import { TeamOutlined, PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, EyeOutlined } from '@ant-design/icons'
 import { useState } from 'react'
 import { usePersistedState } from '../../hooks/usePersistedState'
+import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 import { CompactTableCssOnly } from '../../components/DetailModal'
 
 const { Option } = Select
@@ -25,6 +27,7 @@ const initDepts: DeptItem[] = [
 const statusColors: Record<string, string> = { '正常': 'green', '停用': 'red' }
 
 function OrganizationPage() {
+  const { currentUser } = useUser()
   const [list, setList] = usePersistedState<DeptItem[]>('sys-org', initDepts)
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [isViewVisible, setIsViewVisible] = useState(false)
@@ -60,24 +63,31 @@ function OrganizationPage() {
       if (editing && currentItem) {
         setList(prev => prev.map(i => i.key === currentItem.key ? { ...i, ...values, memberCount: Number(values.memberCount) || i.memberCount } : i))
         message.success('修改成功')
+        addAuditLog(currentUser.name, '系统管理', '编辑', values.name, '部门', `修改部门信息：名称=${values.name}，负责人=${values.manager}`)
       } else {
         const newItem: DeptItem = { ...values, key: 'd' + Date.now(), memberCount: Number(values.memberCount) || 0 }
         setList(prev => [newItem, ...prev])
         message.success('新增成功')
+        addAuditLog(currentUser.name, '系统管理', '新增', values.name, '部门', `新增部门：名称=${values.name}，负责人=${values.manager}`)
       }
       setIsModalVisible(false); form.resetFields()
     }).catch(() => {})
   }
 
   const handleDelete = (key: string) => {
+    const deletedItem = list.find(i => i.key === key)
     setList(prev => prev.filter(i => i.key !== key))
     message.success('已删除')
+    if (deletedItem) {
+      addAuditLog(currentUser.name, '系统管理', '删除', deletedItem.name, '部门', `删除部门：${deletedItem.name}`)
+    }
   }
 
   const toggleStatus = (record: DeptItem) => {
     const newStatus = record.status === '正常' ? '停用' : '正常'
     setList(prev => prev.map(i => i.key === record.key ? { ...i, status: newStatus } : i))
     message.success(`已${newStatus === '正常' ? '启用' : '停用'}`)
+    addAuditLog(currentUser.name, '系统管理', '编辑', record.name, '部门', `${newStatus === '正常' ? '启用' : '停用'}部门：${record.name}`)
   }
 
   const columns = [

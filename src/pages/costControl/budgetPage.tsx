@@ -4,6 +4,7 @@ import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import { usePersistedState } from '../../hooks/usePersistedState'
 import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 import initialData, { initialBudgetApprovalMap } from '../../data/costBudgets'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import type { CostBudgetItem, CCPhase, CCBudgetStatus, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
@@ -188,8 +189,12 @@ const BudgetPanel: React.FC<BudgetPageProps> = () => {
   }
 
   const handleDelete = (key: string) => {
+    const deletedItem = list.find(item => item.key === key)
     setList(prev => { const r = prev.filter(item => item.key !== key); return r })
     message.success('删除成功')
+    if (deletedItem) {
+      addAuditLog(currentUser.name, '成本控制', '删除', deletedItem.title, '成本预算', `删除成本预算：${deletedItem.code}`)
+    }
   }
 
   const handleReview = (record: CostBudgetItem) => {
@@ -223,6 +228,7 @@ const BudgetPanel: React.FC<BudgetPageProps> = () => {
       setIsAddModalVisible(false)
       addForm.resetFields()
       message.success('新增成功')
+      addAuditLog(currentUser.name, '成本控制', '新增', values.title, '成本预算', `新增成本预算：${values.code}`)
     })
   }
 
@@ -236,6 +242,7 @@ const BudgetPanel: React.FC<BudgetPageProps> = () => {
         editForm.resetFields()
         setCurrentItem(null)
         message.success('修改成功')
+        addAuditLog(currentUser.name, '成本控制', '编辑', currentItem.title, '成本预算', `编辑成本预算：${currentItem.code}`)
       }
     })
   }
@@ -299,10 +306,12 @@ const BudgetPanel: React.FC<BudgetPageProps> = () => {
     if (payload.status === '驳回') {
       setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '待审批' as CCBudgetStatus } : item); return r })
       message.success('已驳回，返回待审批')
+      addAuditLog(currentUser.name, '成本控制', '审批', currentItem.title, '成本预算', `驳回成本预算：${currentItem.code}`)
     } else {
       const newStatus: CCBudgetStatus = currentItem.status === '待审批' ? '一审通过' : '已审批'
       setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: newStatus } : item); return r })
       message.success(newStatus === '已审批' ? '终审已通过' : '一审通过，等待总监理工程师终审')
+      addAuditLog(currentUser.name, '成本控制', '审批', currentItem.title, '成本预算', `${newStatus === '已审批' ? '终审通过' : '一审通过'}成本预算：${currentItem.code}`)
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)

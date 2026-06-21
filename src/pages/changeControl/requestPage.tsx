@@ -4,6 +4,7 @@ import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import { usePersistedState } from '../../hooks/usePersistedState'
 import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 import initialData, { initialRequestApprovalMap } from '../../data/changeRequests'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import type { ChangeRequestItem, CRType, CRStatus, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
@@ -225,8 +226,12 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
   }
 
   const handleDelete = (key: string) => {
+    const deletedItem = list.find(item => item.key === key)
     setList(prev => { const r = prev.filter(item => item.key !== key); return r })
     message.success('删除成功')
+    if (deletedItem) {
+      addAuditLog(currentUser.name, '变更控制', '删除', deletedItem.title, '变更申请', `删除变更申请：${deletedItem.code}`)
+    }
   }
 
   const handleReview = (record: ChangeRequestItem) => {
@@ -266,6 +271,7 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
       setIsAddModalVisible(false)
       addForm.resetFields()
       message.success('新增成功')
+      addAuditLog(currentUser.name, '变更控制', '新增', values.title, '变更申请', `新增变更申请：${values.code}`)
     })
   }
 
@@ -279,6 +285,7 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
         editForm.resetFields()
         setCurrentItem(null)
         message.success('修改成功')
+        addAuditLog(currentUser.name, '变更控制', '编辑', currentItem.title, '变更申请', `编辑变更申请：${currentItem.code}`)
       }
     })
   }
@@ -343,10 +350,12 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
     if (payload.status === '驳回') {
       setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '待审批' as CRStatus } : item); return r })
       message.success('已驳回，返回待审批')
+      addAuditLog(currentUser.name, '变更控制', '审批', currentItem.title, '变更申请', `驳回变更申请：${currentItem.code}`)
     } else {
       const newStatus: CRStatus = currentItem.status === '待审批' ? '一审通过' : '已审批'
       setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: newStatus, currentLevel: nextLevel } : item); return r })
       message.success(newStatus === '已审批' ? '终审已通过' : '一审通过，等待总监理工程师终审')
+      addAuditLog(currentUser.name, '变更控制', '审批', currentItem.title, '变更申请', `${newStatus === '已审批' ? '终审通过' : '一审通过'}变更申请：${currentItem.code}`)
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)

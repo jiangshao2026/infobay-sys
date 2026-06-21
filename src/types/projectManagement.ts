@@ -1178,5 +1178,25 @@ export interface SupervisorCertificateItem {
   attachment?: DocumentAttachment[]
 }
 
+// ============================================================
+// 审计日志模块
+// ============================================================
+export type AuditAction = '新增' | '编辑' | '删除' | '查询' | '审批' | '登录' | '导出' | '上传' | '下载'
+export type AuditModule =
+  | '项目管理' | '质量控制' | '进度控制' | '成本控制' | '变更控制'
+  | '安全管理' | '信息管理' | '组织协调' | '验收归档' | '合同管理'
+  | '知识库' | '监理师管理' | '系统管理' | '工作台'
+
+export interface AuditLogItem {
+  key: string
+  timestamp: string
+  user: string
+  module: AuditModule
+  action: AuditAction
+  target: string       // 操作对象名称（如项目名称、合同编号）
+  targetType: string   // 对象类型（如项目、合同、质量问题）
+  detail: string       // 操作详情
+}
+
 // 统一导出
 export * as default from './projectManagement'

@@ -27,6 +27,7 @@ import {
 
 import { usePersistedState } from '../../hooks/usePersistedState'
 import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 const { Option } = Select
 
 function PaymentManagement() {
@@ -141,6 +142,7 @@ function PaymentManagement() {
       setIsModalVisible(false)
       form.resetFields()
       message.success('支付申请已提交，等待审批')
+      addAuditLog(currentUser.name, '合同管理', '新增', values.code, '支付申请', `新增支付申请：${values.code}，金额：${values.amount}万元`)
     })
   }
 
@@ -191,6 +193,7 @@ function PaymentManagement() {
       setIsEditModalVisible(false)
       setCurrentEditItem(null)
       message.success('支付记录编辑成功')
+      addAuditLog(currentUser.name, '合同管理', '编辑', currentEditItem.code, '支付申请', `编辑支付申请：${currentEditItem.code}`)
     })
   }
 
@@ -205,6 +208,7 @@ function PaymentManagement() {
         const updated = paymentList.filter(p => p.key !== record.key)
         setPaymentList(updated)
         message.success('已删除')
+        addAuditLog(currentUser.name, '合同管理', '删除', record.code, '支付申请', `删除支付申请：${record.code}`)
       },
     })
   }
@@ -245,10 +249,12 @@ function PaymentManagement() {
     if (payload.status === '驳回') {
       setPaymentList(prev => prev.map(item => item.key === key ? { ...item, status: '待审批' as PaymentMgmtStatus } : item))
       message.success('已驳回，返回待审批')
+      addAuditLog(currentUser.name, '合同管理', '审批', reviewTarget.code, '支付申请', '驳回，返回待审批')
     } else {
       const newStatus: PaymentMgmtStatus = reviewTarget.status === '待审批' ? '一审通过' : '已审批'
       setPaymentList(prev => prev.map(item => item.key === key ? { ...item, status: newStatus } : item))
       message.success(newStatus === '已审批' ? '终审已通过' : '一审通过，等待总监理工程师终审')
+      addAuditLog(currentUser.name, '合同管理', '审批', reviewTarget.code, '支付申请', newStatus === '已审批' ? '终审已通过' : '一审通过')
     }
     setIsReviewModalVisible(false)
     setReviewTarget(null)
@@ -264,6 +270,7 @@ function PaymentManagement() {
       onOk: () => {
         updatePaymentStatus(currentItem.key, '已支付')
         message.success('已标记为已支付')
+        addAuditLog(currentUser.name, '合同管理', '编辑', currentItem.code, '支付申请', '标记为已支付')
       },
     })
   }
@@ -296,6 +303,7 @@ function PaymentManagement() {
     const { kind, ctx } = buildDocumentContext(item)
     exportDocument(kind, ctx)
     message.success('支付意见已导出')
+    addAuditLog(currentUser.name, '合同管理', '导出', item.code, '支付申请', '导出支付意见书')
   }
 
   const handlePrintOpinion = (item: PaymentMgmtItem) => {

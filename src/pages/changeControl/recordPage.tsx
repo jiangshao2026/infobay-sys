@@ -10,6 +10,7 @@ import { DocumentUploader, DocumentList } from '../../components/DocumentUploade
 import { formatCurrency } from '../../utils/format'
 import { usePersistedState } from '../../hooks/usePersistedState'
 import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 
 const { Option } = Select
 const { TextArea } = Input
@@ -213,6 +214,7 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   }
 
   const handleDelete = (key: string) => {
+    const item = list.find(i => i.key === key)
     Modal.confirm({
       title: '确认删除',
       content: '确定要删除此变更记录吗？',
@@ -222,6 +224,7 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
       onOk: () => {
         setList(prev => { const r = prev.filter(item => item.key !== key); return r })
         message.success('删除成功')
+        if (item) addAuditLog(currentUser.name, '变更控制', '删除', item.title || item.code, '变更记录', `删除变更记录：${item.code}`)
       },
     })
   }
@@ -293,6 +296,7 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
         editForm.resetFields()
         setCurrentItem(null)
         message.success('修改成功')
+        addAuditLog(currentUser.name, '变更控制', '编辑', currentItem.title || currentItem.code, '变更记录', `编辑变更记录：${currentItem.code}`)
       }
     })
   }

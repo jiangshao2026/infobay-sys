@@ -4,6 +4,7 @@ import {  useState, useRef , useEffect } from 'react'
 import dayjs from 'dayjs'
 import { usePersistedState } from '../../hooks/usePersistedState'
 import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 import initialData, { initialAnalysisApprovalMap } from '../../data/costAnalyses'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import type { CostAnalysisItem, CCAnalysisStatus, DocumentAttachment, ApprovalRecord } from '../../types/projectManagement'
@@ -212,6 +213,7 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
       setIsAddModalVisible(false)
       addForm.resetFields()
       message.success('新增成功')
+      addAuditLog(currentUser.name, '成本控制', '新增', values.title || values.code, '成本分析', `新增成本分析报告：${values.code}`)
     })
   }
 
@@ -289,11 +291,13 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
     if (payload.status === '驳回') {
       setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '待审批' as CCAnalysisStatus } : item); return r })
       message.success('已驳回，返回待审批')
+      addAuditLog(currentUser.name, '成本控制', '审批', currentItem.title || currentItem.code, '成本分析', `驳回成本分析报告：${currentItem.code}`)
     } else {
       const isFinal = nextLevel >= 2
       const newStatus: CCAnalysisStatus = currentItem.status === '待审批' ? '一审通过' : '已审批'
       setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: newStatus } : item); return r })
       message.success(newStatus === '已审批' ? '终审已通过' : '一审通过，等待总监理工程师终审')
+      addAuditLog(currentUser.name, '成本控制', '审批', currentItem.title || currentItem.code, '成本分析', `审批成本分析报告：${currentItem.code}，状态：${newStatus}`)
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)

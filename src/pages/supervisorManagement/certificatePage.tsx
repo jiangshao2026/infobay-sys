@@ -7,6 +7,8 @@ import initialSupervisors from '../../data/supervisors'
 import type { SupervisorCertificateItem, SPCertType, SPCertStatus, DocumentAttachment } from '../../types/projectManagement'
 import { DetailModal, descItem, descText, CompactTableCssOnly, typeColor, statusColor } from '../../components/DetailModal'
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
+import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 
 import { usePersistedState } from '../../hooks/usePersistedState'
 const { Option } = Select
@@ -21,6 +23,7 @@ const getSupervisorNameByCode = (code: string): string => {
 
 const CertificatePanel: React.FC = () => {
   const [list, setList] = usePersistedState<SupervisorCertItem[]>('supervisor-cert', initialData)
+const { currentUser } = useUser()
 const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -152,8 +155,10 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   }
 
   const handleDelete = (key: string) => {
+    const item = list.find(i => i.key === key)
     setList(prev => { const r = prev.filter(item => item.key !== key); return r })
     message.success('删除成功')
+    if (item) addAuditLog(currentUser.name, '监理师管理', '删除', item.certificateNo || item.code, '资质证书', `删除资质证书：${item.code}`)
   }
 
   const showAddModal = () => {
@@ -199,6 +204,7 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
         editForm.resetFields()
         setCurrentItem(null)
         message.success('修改成功')
+        addAuditLog(currentUser.name, '监理师管理', '编辑', currentItem.certificateNo || currentItem.code, '资质证书', `编辑资质证书：${currentItem.code}`)
       }
     })
   }

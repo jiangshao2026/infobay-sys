@@ -6,6 +6,8 @@ import initialData from '../../data/projectRelations'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import { statusColor, typeColor } from '../../components/DetailModal'
 import type { ProjectRelationItem, RelationParty, RelationContact, RelationPartyInfo } from '../../types/projectManagement'
+import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 
 const { Option } = Select
 
@@ -101,6 +103,7 @@ const PartySummaryCell: React.FC<{ party: RelationPartyInfo; color: string }> = 
 
 const ProjectRelationPanel: React.FC = () => {
   const [list, setList] = usePersistedState<ProjectRelationItem[]>('org-team', initialData)
+  const { currentUser } = useUser()
   const [isDetailVisible, setIsDetailVisible] = useState(false)
   const [currentItem, setCurrentItem] = useState<ProjectRelationItem | null>(null)
 
@@ -312,6 +315,7 @@ const ProjectRelationPanel: React.FC = () => {
       setCurrentItem(updated)
       setIsPartyEditVisible(false)
       message.success(`已更新 ${editingParty} 信息`)
+      addAuditLog(currentUser.name, '组织协调', '编辑', currentItem.projectName || currentItem.code, '项目关系人', `维护${editingParty}信息：${currentItem.code}`)
     }).catch(() => {})
   }
 

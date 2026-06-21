@@ -7,6 +7,8 @@ import type { CostTrackItem, CCPhase, CCTrackStatus, DocumentAttachment } from '
 import { DetailModal, descItem, descText, CompactTableCssOnly } from '../../components/DetailModal'
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
 import { formatCurrency } from '../../utils/format'
+import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 
 import { usePersistedState } from '../../hooks/usePersistedState'
 const { Option } = Select
@@ -35,6 +37,7 @@ interface TrackPageProps {}
 
 const TrackPanel: React.FC<TrackPageProps> = () => {
   const [list, setList] = usePersistedState<CostTrackItem[]>('cost-track', initialData)
+const { currentUser } = useUser()
 const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -222,6 +225,7 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
         editForm.resetFields()
         setCurrentItem(null)
         message.success('修改成功')
+        addAuditLog(currentUser.name, '成本控制', '编辑', currentItem.title || currentItem.code, '成本跟踪', `编辑成本跟踪记录：${currentItem.code}`)
       }
     })
   }

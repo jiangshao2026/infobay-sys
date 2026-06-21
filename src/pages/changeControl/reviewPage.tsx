@@ -9,6 +9,7 @@ import { usePersistedState } from '../../hooks/usePersistedState'
 import { DetailModal, descItem, descText, CompactTableCssOnly } from '../../components/DetailModal'
 import { ReviewModal, ReviewTimeline, getApprovalRecords, APPROVAL_CHAINS } from '../../components/ReviewFlow'
 import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 import { DocumentList } from '../../components/DocumentUploader'
 import { formatCurrency } from '../../utils/format'
 
@@ -225,10 +226,12 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
     if (payload.status === '驳回') {
       setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '待审批' as CRStatus } : item); return r })
       message.success('已驳回，返回待审批')
+      addAuditLog(currentUser.name, '变更控制', '审批', currentItem.title || currentItem.code, '变更申请', `驳回变更申请：${currentItem.code}`)
     } else {
       const newStatus: CRStatus = currentItem.status === '待审批' ? '一审通过' : '已审批'
       setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: newStatus } : item); return r })
       message.success(newStatus === '已审批' ? '终审已通过' : '一审通过，等待总监理工程师终审')
+      addAuditLog(currentUser.name, '变更控制', '审批', currentItem.title || currentItem.code, '变更申请', `审批变更申请：${currentItem.code}，状态：${newStatus}`)
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)

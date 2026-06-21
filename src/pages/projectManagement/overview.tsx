@@ -11,7 +11,8 @@ import {
 } from '@ant-design/icons'
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import initialProjectData from '../../data/projects'
+import { useCrossModuleData } from '../../context/CrossModuleDataContext'
+import { usePersistedState } from '../../hooks/usePersistedState'
 import qualityChecksData from '../../data/qualityChecks'
 import qualityIssuesData from '../../data/qualityIssues'
 import qualityReportsData from '../../data/qualityReports'
@@ -21,17 +22,12 @@ import scheduleReportsData from '../../data/scheduleReports'
 import costBudgetsData from '../../data/costBudgets'
 import costTracksData from '../../data/costTracks'
 import costAnalysesData from '../../data/costAnalyses'
-import changeRequestsData from '../../data/changeRequests'
-import safetyChecksData from '../../data/safetyChecks'
 import safetyTrainingsData from '../../data/safetyTrainings'
-import safetyIncidentsData from '../../data/safetyIncidents'
-import infoDocumentsData from '../../data/infoDocuments'
 import infoReportsData from '../../data/infoReports'
 import infoArchivesData from '../../data/infoArchives'
 import teamMembersData from '../../data/teamMembers'
 import meetingsData from '../../data/meetings'
 import communicationsData from '../../data/communications'
-import acceptanceChecksData from '../../data/acceptanceChecks'
 import acceptanceReportsData from '../../data/acceptanceReports'
 import fileArchivesData from '../../data/fileArchives'
 import type { ProjectItem } from '../../types/projectManagement'
@@ -43,12 +39,31 @@ const { TabPane } = Tabs
 function ProjectOverview() {
   const { code } = useParams<{ code: string }>()
   const navigate = useNavigate()
+  const { projectList, qualityIssueList, changeRequestList: liveChangeRequests, safetyCheckList: liveSafetyChecks, safetyIncidentList: liveSafetyIncidents, infoDocList: liveInfoDocuments, acceptCheckList: liveAcceptanceChecks } = useCrossModuleData()
   const [project, setProject] = useState<ProjectItem | null>(null)
 
+  // 读取各子模块实时数据（与 CRUD 页面共享同一 localStorage key）
+  const [liveQualityChecks] = usePersistedState('quality-check', qualityChecksData)
+  const [liveQualityReports] = usePersistedState('quality-report', qualityReportsData)
+  const [liveSchedulePlans] = usePersistedState('schedule-plan', schedulePlansData)
+  const [liveScheduleTracks] = usePersistedState('schedule-track', scheduleTracksData)
+  const [liveScheduleReports] = usePersistedState('schedule-report', scheduleReportsData)
+  const [liveCostBudgets] = usePersistedState('cost-budget', costBudgetsData)
+  const [liveCostTracks] = usePersistedState('cost-track', costTracksData)
+  const [liveCostAnalyses] = usePersistedState('cost-analysis', costAnalysesData)
+  const [liveSafetyTrainings] = usePersistedState('safety-training', safetyTrainingsData)
+  const [liveInfoReports] = usePersistedState('info-report', infoReportsData)
+  const [liveInfoArchives] = usePersistedState('info-archive', infoArchivesData)
+  const [liveTeamMembers] = usePersistedState('org-team', teamMembersData)
+  const [liveMeetings] = usePersistedState('org-meeting-list', meetingsData)
+  const [liveCommunications] = usePersistedState('org-comm', communicationsData)
+  const [liveAcceptanceReports] = usePersistedState('accept-report', acceptanceReportsData)
+  const [liveFileArchives] = usePersistedState('info-archive', fileArchivesData)
+
   useEffect(() => {
-    const found = initialProjectData.find(p => p.code === code)
+    const found = projectList.find(p => p.code === code)
     setProject(found || null)
-  }, [code])
+  }, [code, projectList])
 
   if (!project) {
     return (
@@ -61,28 +76,28 @@ function ProjectOverview() {
   }
 
   // ============== 各模块按项目筛选 ==============
-  const qualityChecks = qualityChecksData.filter(d => d.projectCode === project.code)
-  const qualityIssues = qualityIssuesData.filter(d => d.projectCode === project.code)
-  const qualityReports = qualityReportsData.filter(d => d.projectCode === project.code)
-  const schedulePlans = schedulePlansData.filter(d => d.projectCode === project.code)
-  const scheduleTracks = scheduleTracksData.filter(d => d.projectCode === project.code)
-  const scheduleReports = scheduleReportsData.filter(d => d.projectCode === project.code)
-  const costBudgets = costBudgetsData.filter(d => d.projectCode === project.code)
-  const costTracks = costTracksData.filter(d => d.projectCode === project.code)
-  const costAnalyses = costAnalysesData.filter(d => d.projectCode === project.code)
-  const changeRequests = changeRequestsData.filter(d => d.projectCode === project.code)
-  const safetyChecks = safetyChecksData.filter(d => d.projectCode === project.code)
-  const safetyTrainings = safetyTrainingsData.filter(d => d.projectCode === project.code)
-  const safetyIncidents = safetyIncidentsData.filter(d => d.projectCode === project.code)
-  const infoDocuments = infoDocumentsData.filter(d => d.projectCode === project.code)
-  const infoReports = infoReportsData.filter(d => d.projectCode === project.code)
-  const infoArchives = infoArchivesData.filter(d => d.projectCode === project.code)
-  const teamMembers = teamMembersData.filter(d => d.projectCode === project.code)
-  const meetings = meetingsData.filter(d => d.projectCode === project.code)
-  const communications = communicationsData.filter(d => d.projectCode === project.code)
-  const acceptanceChecks = acceptanceChecksData.filter(d => d.projectCode === project.code)
-  const acceptanceReports = acceptanceReportsData.filter(d => d.projectCode === project.code)
-  const fileArchives = fileArchivesData.filter(d => d.projectCode === project.code)
+  const qualityChecks = liveQualityChecks.filter(d => d.projectCode === project.code)
+  const qualityIssues = liveQualityIssues.filter(d => d.projectCode === project.code)
+  const qualityReports = liveQualityReports.filter(d => d.projectCode === project.code)
+  const schedulePlans = liveSchedulePlans.filter(d => d.projectCode === project.code)
+  const scheduleTracks = liveScheduleTracks.filter(d => d.projectCode === project.code)
+  const scheduleReports = liveScheduleReports.filter(d => d.projectCode === project.code)
+  const costBudgets = liveCostBudgets.filter(d => d.projectCode === project.code)
+  const costTracks = liveCostTracks.filter(d => d.projectCode === project.code)
+  const costAnalyses = liveCostAnalyses.filter(d => d.projectCode === project.code)
+  const changeRequests = liveChangeRequests.filter(d => d.projectCode === project.code)
+  const safetyChecks = liveSafetyChecks.filter(d => d.projectCode === project.code)
+  const safetyTrainings = liveSafetyTrainings.filter(d => d.projectCode === project.code)
+  const safetyIncidents = liveSafetyIncidents.filter(d => d.projectCode === project.code)
+  const infoDocuments = liveInfoDocuments.filter(d => d.projectCode === project.code)
+  const infoReports = liveInfoReports.filter(d => d.projectCode === project.code)
+  const infoArchives = liveInfoArchives.filter(d => d.projectCode === project.code)
+  const teamMembers = liveTeamMembers.filter(d => d.projectCode === project.code)
+  const meetings = liveMeetings.filter(d => d.projectCode === project.code)
+  const communications = liveCommunications.filter(d => d.projectCode === project.code)
+  const acceptanceChecks = liveAcceptanceChecks.filter(d => d.projectCode === project.code)
+  const acceptanceReports = liveAcceptanceReports.filter(d => d.projectCode === project.code)
+  const fileArchives = liveFileArchives.filter(d => d.projectCode === project.code)
 
   // ============== 统计计算 ==============
   const pendingQuality = qualityIssues.filter(i => i.status !== '已完成').length

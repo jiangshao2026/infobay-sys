@@ -2,6 +2,8 @@ import { Card, Table, Button, Space, Input, Select, DatePicker, Modal, Form, mes
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons'
 import {  useState, useRef , useEffect } from 'react'
 import { usePersistedState } from '../../hooks/usePersistedState'
+import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 import dayjs from 'dayjs'
 import initialData from '../../data/meetings'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
@@ -71,6 +73,7 @@ const normalizeLegacyList = (items: MeetingItem[]): OrgMeetingItem[] =>
 
 function OrgMeeting() {
   const [list, setList] = usePersistedState<OrgMeetingItem[]>('org-meeting-list', normalizeLegacyList(initialData))
+  const { currentUser } = useUser()
   const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -204,8 +207,12 @@ function OrgMeeting() {
       cancelText: '取消',
       okButtonProps: { danger: true },
       onOk: () => {
+        const deletedItem = list.find(item => item.key === key)
         setList(prev => { const r = prev.filter(item => item.key !== key); return r })
         message.success('删除成功')
+        if (deletedItem) {
+          addAuditLog(currentUser.name, '组织协调', '删除', deletedItem.title, '会议', `删除会议：${deletedItem.title}（编号：${deletedItem.code}）`)
+        }
       },
     })
   }
@@ -239,6 +246,7 @@ function OrgMeeting() {
       setIsAddModalVisible(false)
       addForm.resetFields()
       message.success('新增成功')
+      addAuditLog(currentUser.name, '组织协调', '新增', newItem.title || newItem.code, '会议', `新增会议：${newItem.title}（编号：${newItem.code}）`)
     })
   }
 
@@ -252,6 +260,7 @@ function OrgMeeting() {
         editForm.resetFields()
         setCurrentItem(null)
         message.success('修改成功')
+        addAuditLog(currentUser.name, '组织协调', '编辑', currentItem.title, '会议', `编辑会议：${currentItem.title}（编号：${currentItem.code}）`)
       }
     })
   }

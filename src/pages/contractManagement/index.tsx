@@ -18,6 +18,7 @@ import { DocumentUploader } from '../../components/DocumentUploader'
 import AttachmentPreview from '../../components/AttachmentPreview'
 import { ReviewModal, ReviewTimeline, getApprovalRecords, APPROVAL_CHAINS } from '../../components/ReviewFlow'
 import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 
 import { usePersistedState } from '../../hooks/usePersistedState'
 const { Option } = Select
@@ -25,6 +26,7 @@ const { Option } = Select
 function ContractManagement() {
   const { currentUser } = useUser()
   const [contractList, setContractList] = usePersistedState<ContractMgmtItem[]>('contractmgmt-main', contractMgmtData)
+  const [searchResult, setSearchResult] = useState<ContractMgmtItem[] | null>(null)
   const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalRecord[]>>('contractmgmt-main-approval', initialContractApprovalMap)
   const [isReviewModalVisible, setIsReviewModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -57,12 +59,12 @@ function ContractManagement() {
       }
       return true
     })
-    setContractList(filtered)
+    setSearchResult(filtered)
   }
 
   const handleReset = () => {
     searchForm.resetFields()
-    setContractList([...contractList])
+    setSearchResult(null)
   }
 
   const handleView = (record: ContractMgmtItem) => {
@@ -93,10 +95,12 @@ function ContractManagement() {
     if (payload.status === '驳回') {
       setContractList(prev => prev.map(item => item.key === key ? { ...item, status: '待审批' as ContractMgmtStatus } : item))
       message.success('已驳回，返回待审批')
+      addAuditLog(currentUser.name, '合同管理', '审批', currentItem.code, '建设合同', '驳回，返回待审批')
     } else {
       const newStatus: ContractMgmtStatus = currentItem.status === '待审批' ? '一审通过' : '已审批'
       setContractList(prev => prev.map(item => item.key === key ? { ...item, status: newStatus } : item))
       message.success(newStatus === '已审批' ? '终审已通过' : '一审通过，等待总监理工程师终审')
+      addAuditLog(currentUser.name, '合同管理', '审批', currentItem.code, '建设合同', newStatus === '已审批' ? '终审已通过' : '一审通过')
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)
@@ -139,6 +143,7 @@ function ContractManagement() {
       setIsModalVisible(false)
       form.resetFields()
       message.success('建设合同新增成功')
+      addAuditLog(currentUser.name, '合同管理', '新增', values.name, '建设合同', `新增建设合同：${values.name}，编号：${values.code}，金额：${values.amount}万元`)
     })
   }
 
@@ -185,6 +190,7 @@ function ContractManagement() {
       setIsEditModalVisible(false)
       setCurrentEditItem(null)
       message.success('建设合同编辑成功')
+      addAuditLog(currentUser.name, '合同管理', '编辑', currentEditItem.name, '建设合同', `编辑建设合同：${currentEditItem.name}，编号：${currentEditItem.code}`)
     })
   }
 
@@ -382,7 +388,7 @@ function ContractManagement() {
 
         <Table
           size="small"
-          dataSource={contractList}
+          dataSource={searchResult ?? contractList}
           columns={columns}
           pagination={{ pageSize: 10, showSizeChanger: false }}
           rowKey="key"

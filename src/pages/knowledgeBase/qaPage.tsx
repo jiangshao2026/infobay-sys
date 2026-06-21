@@ -2,6 +2,9 @@ import { Card, Input, Button, Upload, Space, message, Spin, Avatar, Modal } from
 import { SendOutlined, PaperClipOutlined, UserOutlined, RobotOutlined } from '@ant-design/icons'
 import { useState, useRef, useEffect } from 'react'
 import type { UploadFile } from 'antd'
+import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
+import { usePersistedState } from '../../hooks/usePersistedState'
 
 const { TextArea } = Input
 
@@ -62,8 +65,9 @@ const matchAnswer = (q: string): string => {
 }
 
 const KnowledgeQAPanel: React.FC = () => {
+  const { currentUser } = useUser()
   const [question, setQuestion] = useState('')
-  const [messages, setMessages] = useState<QAMessage[]>([
+  const [messages, setMessages] = usePersistedState<QAMessage[]>('knowledge-qa-messages', [
     {
       id: 'welcome',
       role: 'assistant',
@@ -153,10 +157,14 @@ const KnowledgeQAPanel: React.FC = () => {
   }
 
   const handleLike = (msgId: string) => {
+    const targetMsg = messages.find(m => m.id === msgId)
     setMessages(prev => prev.map(m =>
       m.id === msgId ? { ...m, rating: m.rating === 'like' ? undefined : 'like', reviewComment: undefined } : m
     ))
     message.success('已标记为有用的回答')
+    if (targetMsg) {
+      addAuditLog(currentUser.name, '知识库', '编辑', targetMsg.content.slice(0, 50), '智能问答', `标记问答回答为有用`)
+    }
   }
 
   const handleDislikeClick = (msgId: string) => {
@@ -167,6 +175,7 @@ const KnowledgeQAPanel: React.FC = () => {
 
   const handleDislikeSubmit = () => {
     if (dislikeTargetId) {
+      const targetMsg = messages.find(m => m.id === dislikeTargetId)
       setMessages(prev => prev.map(m =>
         m.id === dislikeTargetId
           ? { ...m, rating: 'dislike', reviewComment: dislikeComment.trim() || undefined }
@@ -176,6 +185,9 @@ const KnowledgeQAPanel: React.FC = () => {
       setDislikeTargetId(null)
       setDislikeComment('')
       message.success('感谢您的反馈')
+      if (targetMsg) {
+        addAuditLog(currentUser.name, '知识库', '编辑', targetMsg.content.slice(0, 50), '智能问答', `标记问答回答为不满意，反馈：${dislikeComment.trim() || '无'}`)
+      }
     }
   }
 

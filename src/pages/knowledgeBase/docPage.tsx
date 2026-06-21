@@ -9,6 +9,7 @@ import { DetailModal, descItem, descText, CompactTableCssOnly, categoryColor, do
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
 import { ReviewModal, ReviewTimeline, getApprovalRecords, APPROVAL_CHAINS, type ApprovalRecord, exportDocument, printDocument } from '../../components/ReviewFlow'
 import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 
 const { Option } = Select
 const { TextArea } = Input
@@ -239,8 +240,12 @@ const DocPanel: React.FC<DocPanelProps> = ({ defaultCategory }) => {
   }
 
   const handleDelete = (key: string) => {
+    const deletedItem = list.find(item => item.key === key)
     setList(prev => { const r = prev.filter(item => item.key !== key); return r })
     message.success('删除成功')
+    if (deletedItem) {
+      addAuditLog(currentUser.name, '知识库', '删除', deletedItem.title, '知识文档', `删除知识文档：${deletedItem.title}`)
+    }
   }
 
   const showAddModal = () => {
@@ -280,6 +285,7 @@ const DocPanel: React.FC<DocPanelProps> = ({ defaultCategory }) => {
       setIsAddModalVisible(false)
       addForm.resetFields()
       message.success('新增成功，文档已进入待审批状态')
+      addAuditLog(currentUser.name, '知识库', '新增', newItem.title, '知识文档', `新增知识文档：${newItem.title}`)
     })
   }
 
@@ -293,6 +299,9 @@ const DocPanel: React.FC<DocPanelProps> = ({ defaultCategory }) => {
         editForm.resetFields()
         setCurrentItem(null)
         message.success('修改成功')
+        if (currentItem) {
+          addAuditLog(currentUser.name, '知识库', '编辑', currentItem.title, '知识文档', `编辑知识文档：${currentItem.title}`)
+        }
       }
     })
   }
@@ -377,6 +386,7 @@ const DocPanel: React.FC<DocPanelProps> = ({ defaultCategory }) => {
     setList(prev => prev.map(item => (item.key === approvalTarget.key ? updatedItem : item)))
     setIsApprovalModalVisible(false)
     message.success(`审批已提交，当前状态：${newStatus}`)
+    addAuditLog(currentUser.name, '知识库', '审批', approvalTarget.title, '知识文档', `审批知识文档「${approvalTarget.title}」，结果：${payload.status}，当前状态：${newStatus}`)
   }
 
   const handleOpenReview = (record: KnowledgeDocItem) => {
@@ -406,6 +416,9 @@ const DocPanel: React.FC<DocPanelProps> = ({ defaultCategory }) => {
         reviewForm.resetFields()
         setIsReviewModalVisible(false)
         message.success('点评发表成功')
+        if (reviewTarget) {
+          addAuditLog(currentUser.name, '知识库', '编辑', reviewTarget.title, '知识文档', `对知识文档「${reviewTarget.title}」发表点评`)
+        }
       }
     })
   }

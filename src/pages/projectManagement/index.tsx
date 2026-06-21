@@ -3,20 +3,23 @@ import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined
 import {  useState, useRef , useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
-import initialProjectData from '../../data/projects'
 import type { ProjectItem, ProjectSearchParams } from '../../types/projectManagement'
 import { formatCurrency } from '../../utils/format'
 import { validateDateRange, parseAmountFromForm, amountToWanyuan } from '../../utils/validation'
 import { DetailModal, descItem, descText, descTag, scaleColor, statusColor } from '../../components/DetailModal'
 import { CompactTableCssOnly } from '../../components/CompactTable'
 
-import { usePersistedState } from '../../hooks/usePersistedState'
+import { useCrossModuleData } from '../../context/CrossModuleDataContext'
+import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 const { RangePicker } = DatePicker
 const { Option } = Select
 
 function ProjectManagement() {
+  const { currentUser } = useUser()
   const navigate = useNavigate()
-  const [projectData, setProjectData] = usePersistedState<ProjectItem[]>('project-list', initialProjectData)
+  const { projectList: projectData, setProjectList: setProjectData } = useCrossModuleData()
+  const [searchResult, setSearchResult] = useState<ProjectItem[] | null>(null)
 const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   const [isEditModalVisible, setIsEditModalVisible] = useState(false)
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false)
@@ -139,11 +142,15 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
   }
 
   const handleDelete = (key: string) => {
+    const deletedProject = projectData.find(item => item.key === key)
     setProjectData(prev => {
       const next = prev.filter(item => item.key !== key)
       return next
     })
     message.success('删除成功')
+    if (deletedProject) {
+      addAuditLog(currentUser.name, '项目管理', '删除', deletedProject.name, '项目', `删除项目：${deletedProject.name}（编号：${deletedProject.code}）`)
+    }
   }
 
   const showAddModal = () => {
@@ -174,6 +181,7 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
       setIsAddModalVisible(false)
       addForm.resetFields()
       message.success('新增成功')
+      addAuditLog(currentUser.name, '项目管理', '新增', values.name, '项目', `新增项目：名称=${values.name}，类型=${values.type}，投资额=${values.investment}万元`)
     })
   }
 
@@ -205,6 +213,7 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
         editForm.resetFields()
         setCurrentProject(null)
         message.success('修改成功')
+        addAuditLog(currentUser.name, '项目管理', '编辑', currentProject.name, '项目', `修改项目信息：名称=${currentProject.name}，投资额=${parseAmountFromForm(values.investment)}万元`)
       }
     })
   }
@@ -233,13 +242,13 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
       }
       return match
     })
-    setProjectData(filtered)
+    setSearchResult(filtered)
     message.success(`查询到 ${filtered.length} 条记录`)
   }
 
   const handleReset = () => {
     searchForm.resetFields()
-    setProjectData([...projectData])
+    setSearchResult(null)
   }
 
   const handleCancel = () => {
@@ -296,7 +305,7 @@ const [isAddModalVisible, setIsAddModalVisible] = useState(false)
         </Form>
         <Table
           columns={columns}
-          dataSource={projectData}
+          dataSource={searchResult ?? projectData}
           size="small"
           pagination={{ pageSize: 10, size: 'small' }}
           scroll={{ x: 1550 }}

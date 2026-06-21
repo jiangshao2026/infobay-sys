@@ -44,3 +44,15 @@ export function resetAllPersistedData(): void {
   }
   keysToRemove.forEach(k => localStorage.removeItem(k))
 }
+
+/**
+ * 从 localStorage 读取原始持久化数据（跳过初始数据，只读已存储的值）
+ * 用于 handleReset 中恢复搜索前的完整数据
+ */
+export function getPersistedData<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_PREFIX + key)
+    if (raw) return JSON.parse(raw) as T
+  } catch { /* ignore */ }
+  return null
+}

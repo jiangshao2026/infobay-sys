@@ -6,6 +6,7 @@ import dayjs from 'dayjs'
 import initialProjectData, { getProjectNameByCode } from '../../data/projects'
 import { usePersistedState } from '../../hooks/usePersistedState'
 import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 import planData from '../../data/plans'
 import type { PlanItem, PlanSearchParams, PlanType, PlanStatus } from '../../types/projectManagement'
 import { DetailModal, descItem, descText, descTag, statusColor, descAttachments, CompactTableCssOnly } from '../../components/DetailModal'
@@ -25,6 +26,7 @@ const PLAN_TYPES: PlanType[] = [
 
 function Plan() {
   const [list, setList] = usePersistedState<PlanItem[]>('info-plan', planData)
+  const [searchResult, setSearchResult] = useState<PlanItem[] | null>(null)
   const { currentUser } = useUser()
 const [isDetailVisible, setIsDetailVisible] = useState(false)
   const [currentPlan, setCurrentPlan] = useState<PlanItem | null>(null)
@@ -67,12 +69,12 @@ const [isDetailVisible, setIsDetailVisible] = useState(false)
       }
       return true
     })
-    setList(filtered)
+    setSearchResult(filtered)
   }
 
   const handleReset = () => {
     searchForm.resetFields()
-    setList([...list])
+    setSearchResult(null)
   }
 
   const handleView = (record: PlanItem) => {
@@ -97,11 +99,15 @@ const [isDetailVisible, setIsDetailVisible] = useState(false)
   }
 
   const handleDelete = (key: string) => {
+    const deletedItem = list.find(item => item.key === key)
     setList(prev => {
       const result = prev.filter(item => item.key !== key)
       return result
     })
     message.success('删除成功')
+    if (deletedItem) {
+      addAuditLog(currentUser.name, '信息管理', '删除', deletedItem.title, '监理规划', `删除文档：${deletedItem.title}（编号：${deletedItem.code}）`)
+    }
   }
 
   const handleReview = (record: PlanItem) => {
@@ -135,6 +141,7 @@ const [isDetailVisible, setIsDetailVisible] = useState(false)
         setCurrentPlan(prev => prev ? { ...prev, status: '已审批' } : prev)
       }
       message.success('审批通过')
+      addAuditLog(currentUser.name, '信息管理', '审批', currentPlan.title, '监理规划', `审批通过：${currentPlan.title}（编号：${currentPlan.code}）`)
     } else {
       setList(prev => {
         const result = prev.map(item => item.key === key ? { ...item, status: '编制中' as PlanStatus } : item)
@@ -144,6 +151,7 @@ const [isDetailVisible, setIsDetailVisible] = useState(false)
         setCurrentPlan(prev => prev ? { ...prev, status: '编制中' } : prev)
       }
       message.success('审批已驳回')
+      addAuditLog(currentUser.name, '信息管理', '审批', currentPlan.title, '监理规划', `驳回文档：${currentPlan.title}（编号：${currentPlan.code}）`)
     }
     setIsReviewModalVisible(false)
   }
@@ -170,6 +178,7 @@ const [isDetailVisible, setIsDetailVisible] = useState(false)
       })
       setIsAddVisible(false)
       message.success('新增成功')
+      addAuditLog(currentUser.name, '信息管理', '新增', newPlan.title || newPlan.code, '监理规划', `新增规划：${newPlan.title}（编号：${newPlan.code}）`)
     })
   }
 
@@ -193,6 +202,7 @@ const [isDetailVisible, setIsDetailVisible] = useState(false)
         setIsEditVisible(false)
         setCurrentPlan(null)
         message.success('修改成功')
+        addAuditLog(currentUser.name, '信息管理', '编辑', currentPlan.title, '监理规划', `编辑文档：${currentPlan.title}（编号：${currentPlan.code}）`)
       }
     })
   }
@@ -363,7 +373,7 @@ const [isDetailVisible, setIsDetailVisible] = useState(false)
         </Form>
         <Table
           size="small"
-          dataSource={list}
+          dataSource={searchResult ?? list}
           columns={columns}
           pagination={{ pageSize: 10, size: 'small' }}
           scroll={{ x: 1600 }}

@@ -3,6 +3,8 @@ import { UserOutlined, PlusOutlined, EditOutlined, DeleteOutlined, SearchOutline
 import { useState, useMemo } from 'react'
 import { usePersistedState } from '../../hooks/usePersistedState'
 import { DEMO_USERS, type DemoUser } from '../../context/UserContext'
+import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 import { CompactTableCssOnly } from '../../components/DetailModal'
 
 const { Option } = Select
@@ -13,6 +15,7 @@ const roleColorMap: Record<string, string> = {
 }
 
 function UserPage() {
+  const { currentUser } = useUser()
   // 用 DEMO_USERS 初始化；若演示数据有新增，自动补到列表头部，保证新用户在管理页可见
   const initialList = useMemo(() => {
     const inStorage = (() => {
@@ -65,6 +68,7 @@ function UserPage() {
           avatarText: values.name.charAt(0),
         } : i))
         message.success('修改成功')
+        addAuditLog(currentUser.name, '系统管理', '编辑', values.name, '用户', `修改用户信息：姓名=${values.name}，角色=${values.role}`)
       } else {
         const newUser: DemoUser = {
           key: 'u' + Date.now(),
@@ -75,6 +79,7 @@ function UserPage() {
         }
         setList(prev => [newUser, ...prev])
         message.success('新增成功')
+        addAuditLog(currentUser.name, '系统管理', '新增', values.name, '用户', `新增用户：姓名=${values.name}，角色=${values.role}`)
       }
       setIsModalVisible(false); form.resetFields()
     }).catch(() => {})
@@ -82,8 +87,12 @@ function UserPage() {
 
   const handleDelete = (key: string) => {
     if (list.length <= 1) { message.warning('至少保留一个用户'); return }
+    const deletedUser = list.find(i => i.key === key)
     setList(prev => prev.filter(i => i.key !== key))
     message.success('已删除')
+    if (deletedUser) {
+      addAuditLog(currentUser.name, '系统管理', '删除', deletedUser.name, '用户', `删除用户：${deletedUser.name}`)
+    }
   }
 
   const columns = [

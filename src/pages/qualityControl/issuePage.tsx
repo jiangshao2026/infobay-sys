@@ -8,6 +8,7 @@ import type { QualityIssueItem, QCIssueLevel, QCIssueStatus, DocumentAttachment,
 import { DetailModal, descItem, descText, CompactTableCssOnly, issueLevelColor, issueStatusColor } from '../../components/DetailModal'
 import { ReviewModal, ReviewTimeline, getApprovalRecords, APPROVAL_CHAINS } from '../../components/ReviewFlow'
 import { useUser } from '../../context/UserContext'
+import { addAuditLog } from '../../utils/auditLogger'
 import { usePersistedState } from '../../hooks/usePersistedState'
 import { DocumentUploader, DocumentList } from '../../components/DocumentUploader'
 
@@ -164,8 +165,10 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
   }
 
   const handleDelete = (key: string) => {
+    const item = list.find(i => i.key === key)
     setList(prev => { const r = prev.filter(item => item.key !== key); return r })
     message.success('删除成功')
+    if (item) addAuditLog(currentUser.name, '质量控制', '删除', item.title || item.code, '质量问题', `删除问题整改单：${item.code}`)
   }
 
   const handleCheckup = (record: QualityIssueItem) => {
@@ -221,6 +224,7 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
         editForm.resetFields()
         setCurrentItem(null)
         message.success('修改成功')
+        addAuditLog(currentUser.name, '质量控制', '编辑', currentItem.title || currentItem.code, '质量问题', `编辑问题整改单：${currentItem.code}`)
       }
     })
   }
@@ -236,6 +240,7 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
         checkupForm.resetFields()
         setCurrentItem(null)
         message.success('复查操作已提交')
+        addAuditLog(currentUser.name, '质量控制', '编辑', currentItem.title || currentItem.code, '质量问题', `发起复查：${currentItem.code}，状态推进至：${next}`)
       }
     })
   }
@@ -303,10 +308,12 @@ const [approvalMap, setApprovalMap] = usePersistedState<Record<string, ApprovalR
     if (payload.status === '驳回') {
       setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: '已驳回' as QCIssueStatus } : item); return r })
       message.success('已驳回')
+      addAuditLog(currentUser.name, '质量控制', '审批', currentItem.title || currentItem.code, '质量问题', `驳回问题整改单：${currentItem.code}`)
     } else {
       const next = issueStatusNext(currentItem.status)
       setList(prev => { const r = prev.map(item => item.key === key ? { ...item, status: next } : item); return r })
       message.success(isLast ? '审批已通过' : '审批已提交至下一级')
+      addAuditLog(currentUser.name, '质量控制', '审批', currentItem.title || currentItem.code, '质量问题', `审批问题整改单：${currentItem.code}，状态：${next}`)
     }
     setIsReviewModalVisible(false)
     setCurrentItem(null)
